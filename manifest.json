@@ -22,7 +22,8 @@
     "service_worker": "src/background/index.ts"
   },
   "action": {
-    "default_title": "Open MemoryVault",
+    "default_popup": "popup.html",
+    "default_title": "MemoryVault",
     "default_icon": {
       "16": "public/icon.png",
       "48": "public/icon.png",
@@ -33,8 +34,12 @@
     "default_path": "index.html"
   },
   "commands": {
-    "_execute_action": {
-      "description": "Open MemoryVault"
+    "open-side-panel": {
+      "description": "Open MemoryVault side panel",
+      "suggested_key": {
+        "default": "Ctrl+Shift+V",
+        "mac": "Command+Shift+V"
+      }
     }
   }
 }

@@ -123,9 +123,21 @@ chrome.runtime.onStartup.addListener(() => {
   cleanupInactiveTabs()
 })
 
-chrome.sidePanel
-  .setPanelBehavior({ openPanelOnActionClick: true })
-  .catch(console.warn)
+chrome.commands.onCommand.addListener((command) => {
+  if (command === 'open-side-panel') {
+    chrome.windows.getCurrent({}, (win) => {
+      if (win?.id) chrome.sidePanel.open({ windowId: win.id })
+    })
+  }
+})
+
+chrome.runtime.onMessage.addListener((message, _sender, _sendResponse) => {
+  if (message.type === 'ARCHIVE_TAB' && message.tabId) {
+    archiveTab(message.tabId)
+  } else if (message.type === 'OPEN_SIDE_PANEL' && message.windowId) {
+    chrome.sidePanel.open({ windowId: message.windowId })
+  }
+})
 
 async function cleanupInactiveTabs(): Promise<void> {
   try {

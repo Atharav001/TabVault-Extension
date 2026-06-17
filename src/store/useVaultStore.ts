@@ -11,10 +11,12 @@ interface VaultStore {
   collectionOrder: string[]
   searchQuery: string
   selectedCollection: string | null
+  viewMode: 'list' | 'card'
   isLoading: boolean
 
   setSearchQuery: (query: string) => void
   setSelectedCollection: (collection: string | null) => void
+  setViewMode: (mode: 'list' | 'card') => void
   fetchItems: () => Promise<void>
   deleteItem: (id: number) => Promise<void>
   moveToCollection: (itemId: number, collection: string) => Promise<void>
@@ -33,11 +35,14 @@ export const useVaultStore = create<VaultStore>((set, get) => ({
   collectionOrder: DEFAULT_COLLECTIONS,
   searchQuery: '',
   selectedCollection: null,
+  viewMode: 'list',
   isLoading: false,
 
   setSearchQuery: (query) => set({ searchQuery: query }),
 
   setSelectedCollection: (collection) => set({ selectedCollection: collection }),
+
+  setViewMode: (mode) => set({ viewMode: mode }),
 
   fetchItems: async () => {
     set({ isLoading: true })
