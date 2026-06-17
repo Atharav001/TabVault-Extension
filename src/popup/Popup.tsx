@@ -55,11 +55,12 @@ export default function Popup() {
 
   async function sendAllTabs() {
     setSending('sending')
-    const tabs = await chrome.tabs.query({ currentWindow: true })
-    for (const tab of tabs) {
+    const tabs = await chrome.tabs.query({ currentWindow: true, pinned: false })
+    const nonPinned = tabs.filter(t => !t.pinned)
+    for (const tab of nonPinned) {
       if (tab.id) chrome.runtime.sendMessage({ type: 'ARCHIVE_TAB', tabId: tab.id })
     }
-    setStatus(`Sent ${tabs.length} tabs to vault`)
+    setStatus(`Sent ${nonPinned.length} tabs to vault`)
     setSending('done')
     setTimeout(() => { setSending('idle'); setStatus('') }, 2000)
   }
