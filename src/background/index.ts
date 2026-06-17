@@ -92,8 +92,8 @@ chrome.runtime.onInstalled.addListener(() => {
     title: 'Save to Vault',
     contexts: ['page'],
   })
-
   chrome.alarms.create(ALARM_NAME, { periodInMinutes: 5 })
+  chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: false })
 })
 
 chrome.contextMenus.onClicked.addListener((info, tab) => {
@@ -129,6 +129,7 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
 })
 
 chrome.runtime.onStartup.addListener(() => {
+  chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: false })
   cleanupInactiveTabs()
 })
 
