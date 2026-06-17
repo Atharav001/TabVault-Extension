@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "MemoryVault",
+  "name": "TabVault",
   "version": "0.0.1",
-  "description": "A Brave sidepanel extension to save, organize, and revisit your browsing tabs.",
+  "description": "A browser extension to save, organize, and revisit your browsing tabs.",
   "permissions": [
     "sidePanel",
     "tabs",
@@ -23,7 +23,7 @@
   },
   "action": {
     "default_popup": "popup.html",
-    "default_title": "MemoryVault",
+    "default_title": "TabVault",
     "default_icon": {
       "16": "public/icon.png",
       "48": "public/icon.png",
@@ -35,7 +35,7 @@
   },
   "commands": {
     "open-side-panel": {
-      "description": "Open MemoryVault side panel",
+      "description": "Open TabVault side panel",
       "suggested_key": {
         "default": "Ctrl+Shift+V",
         "mac": "Command+Shift+V"

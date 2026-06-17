@@ -17,7 +17,7 @@ export interface VaultItem {
   windowId: number
 }
 
-const vaultDB = new Dexie('MemoryVault') as Dexie & {
+const vaultDB = new Dexie('TabVault') as Dexie & {
   vault_items: EntityTable<VaultItem, 'id'>
 }
 

@@ -10,7 +10,7 @@ export async function exportToMarkdown(): Promise<void> {
     grouped[collection].push(item)
   }
 
-  const lines: string[] = ['# MemoryVault Export', '']
+  const lines: string[] = ['# TabVault Export', '']
 
   for (const [collection, collectionItems] of Object.entries(grouped)) {
     lines.push(`## ${collection}`)
@@ -31,7 +31,7 @@ export async function exportToMarkdown(): Promise<void> {
 
   await chrome.downloads.download({
     url: dataUrl,
-    filename: 'MemoryVault_Export.md',
+    filename: 'TabVault_Export.md',
     saveAs: false,
   })
 }

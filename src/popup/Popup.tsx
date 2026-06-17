@@ -99,7 +99,7 @@ export default function Popup() {
       <div className="flex items-center justify-between px-1 pb-1.5">
         <div className="flex items-center gap-2">
           <div className={`size-2 rounded-full shadow-sm ${enabled ? 'bg-emerald-500 shadow-emerald-500/30' : 'bg-zinc-600'}`} />
-          <span className="text-xs font-semibold text-zinc-400 tracking-wide">MemoryVault</span>
+          <span className="text-xs font-semibold text-zinc-400 tracking-wide">TabVault</span>
         </div>
         <button
           onClick={toggleEnabled}
