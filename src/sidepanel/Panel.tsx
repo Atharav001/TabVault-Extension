@@ -1,7 +1,8 @@
-import { useEffect, useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { DndContext, PointerSensor, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core'
 import { useVaultStore } from '../store/useVaultStore'
 import { exportToMarkdown } from '../lib/export'
+import { restoreTab } from '../lib/restore'
 import SearchBar from './SearchBar'
 import Collections from './Collections'
 import VirtualList from './VirtualList'
@@ -14,6 +15,8 @@ export default function Panel() {
   const viewMode = useVaultStore((s) => s.viewMode)
   const fetchItems = useVaultStore((s) => s.fetchItems)
   const moveToCollection = useVaultStore((s) => s.moveToCollection)
+
+  const [restoring, setRestoring] = useState(false)
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
@@ -76,10 +79,23 @@ export default function Panel() {
           <VirtualList items={filtered} viewMode={viewMode} />
         )}
 
-        <div className="shrink-0 border-t border-zinc-800/40 px-3 py-2 bg-gradient-to-t from-zinc-900/30 to-transparent backdrop-blur-sm">
+        <div className="shrink-0 border-t border-zinc-800/40 px-3 py-2 bg-gradient-to-t from-zinc-900/30 to-transparent backdrop-blur-sm space-y-1.5">
+          <button
+            onClick={async () => {
+              setRestoring(true)
+              for (const item of filtered) {
+                if (item.id) await restoreTab(item.id)
+              }
+              setRestoring(false)
+            }}
+            disabled={restoring || filtered.length === 0}
+            className="w-full py-2 rounded-xl text-xs font-medium text-emerald-600 hover:text-emerald-300 hover:bg-zinc-800/40 backdrop-blur-sm transition-colors border border-transparent hover:border-emerald-800/60 disabled:opacity-30"
+          >
+            {restoring ? 'Restoring...' : `Restore All (${filtered.length})`}
+          </button>
           <button
             onClick={exportToMarkdown}
-            className="w-full py-2 rounded-xl text-xs font-medium text-zinc-600 hover:text-zinc-300 hover:bg-zinc-800/40 backdrop-blur-sm transition-colors border border-transparent hover:border-zinc-800/60"
+            className="w-full py-1.5 rounded-xl text-[11px] font-medium text-zinc-600 hover:text-zinc-300 hover:bg-zinc-800/40 backdrop-blur-sm transition-colors border border-transparent hover:border-zinc-800/60"
           >
             Export to Markdown
           </button>

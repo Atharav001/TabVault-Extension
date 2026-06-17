@@ -15,9 +15,16 @@ async function setTabActivity(activity: Record<number, number>): Promise<void> {
   await chrome.storage.local.set({ [TAB_ACTIVITY_KEY]: activity })
 }
 
+async function isExtensionEnabled(): Promise<boolean> {
+  const result = await chrome.storage.local.get('extensionEnabled')
+  return result.extensionEnabled !== false
+}
+
 async function archiveTab(tabId: number): Promise<void> {
+  if (!(await isExtensionEnabled())) return
   try {
     const tab = await chrome.tabs.get(tabId)
+    if (tab.pinned) return
     const url = tab.url || ''
     if (!url || url.startsWith('chrome://') || url.startsWith('brave://') || url.startsWith('about:')) {
       return
@@ -140,6 +147,7 @@ chrome.runtime.onMessage.addListener((message, _sender, _sendResponse) => {
 })
 
 async function cleanupInactiveTabs(): Promise<void> {
+  if (!(await isExtensionEnabled())) return
   try {
     const tabs = await chrome.tabs.query({})
     const activity = await getTabActivity()

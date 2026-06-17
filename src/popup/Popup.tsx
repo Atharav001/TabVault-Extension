@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 
 async function getCurrentWindowId(): Promise<number> {
   const win = await chrome.windows.getCurrent()
@@ -41,6 +41,7 @@ function IconGear() {
 export default function Popup() {
   const [sending, setSending] = useState<'idle' | 'sending' | 'done'>('idle')
   const [status, setStatus] = useState('')
+  const [enabled, setEnabled] = useState(true)
 
   async function sendCurrentTab() {
     setSending('sending')
@@ -65,6 +66,20 @@ export default function Popup() {
     setTimeout(() => { setSending('idle'); setStatus('') }, 2000)
   }
 
+  useEffect(() => {
+    chrome.storage.local.get('extensionEnabled', (r) => {
+      setEnabled(r.extensionEnabled !== false)
+    })
+  }, [])
+
+  async function toggleEnabled() {
+    const next = !enabled
+    setEnabled(next)
+    await chrome.storage.local.set({ extensionEnabled: next })
+    setStatus(next ? 'Extension enabled' : 'Extension disabled')
+    setTimeout(() => setStatus(''), 1500)
+  }
+
   async function openSidePanel() {
     const windowId = await getCurrentWindowId()
     chrome.runtime.sendMessage({ type: 'OPEN_SIDE_PANEL', windowId })
@@ -81,9 +96,18 @@ export default function Popup() {
 
   return (
     <div className="flex flex-col gap-1.5 p-2.5 bg-[#121212] text-zinc-100">
-      <div className="flex items-center gap-2 px-1 pb-1.5">
-        <div className="size-2 rounded-full bg-violet-500 shadow-sm shadow-violet-500/30" />
-        <span className="text-xs font-semibold text-zinc-400 tracking-wide">MemoryVault</span>
+      <div className="flex items-center justify-between px-1 pb-1.5">
+        <div className="flex items-center gap-2">
+          <div className={`size-2 rounded-full shadow-sm ${enabled ? 'bg-emerald-500 shadow-emerald-500/30' : 'bg-zinc-600'}`} />
+          <span className="text-xs font-semibold text-zinc-400 tracking-wide">MemoryVault</span>
+        </div>
+        <button
+          onClick={toggleEnabled}
+          className={`relative w-9 h-5 rounded-full transition-colors ${enabled ? 'bg-emerald-500/60' : 'bg-zinc-700'}`}
+          title={enabled ? 'Disable extension' : 'Enable extension'}
+        >
+          <span className={`absolute top-0.5 left-0.5 size-4 rounded-full bg-white transition-transform ${enabled ? 'translate-x-4' : 'translate-x-0'}`} />
+        </button>
       </div>
 
       <button
