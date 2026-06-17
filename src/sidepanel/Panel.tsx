@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { DndContext, PointerSensor, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core'
 import { useVaultStore } from '../store/useVaultStore'
+import { vaultDB } from '../db/vaultDB'
 import { exportToMarkdown } from '../lib/export'
 import { restoreTab } from '../lib/restore'
 import SearchBar from './SearchBar'
@@ -83,9 +84,16 @@ export default function Panel() {
           <button
             onClick={async () => {
               setRestoring(true)
-              for (const item of filtered) {
-                if (item.id) await restoreTab(item.id)
+              const sorted = [...filtered].sort((a, b) => a.tabIndex - b.tabIndex)
+              const idsToRemove: number[] = []
+              for (const item of sorted) {
+                if (item.id) {
+                  await restoreTab(item.id)
+                  idsToRemove.push(item.id)
+                }
               }
+              await vaultDB.vault_items.bulkDelete(idsToRemove)
+              await fetchItems()
               setRestoring(false)
             }}
             disabled={restoring || filtered.length === 0}

@@ -4,7 +4,26 @@ export async function restoreTab(itemId: number): Promise<void> {
   const item = await vaultDB.vault_items.get(itemId)
   if (!item) return
 
-  const tab = await chrome.tabs.create({ url: item.url, active: true })
+  let targetWindowId = item.windowId
+  let targetIndex = item.tabIndex
+
+  try {
+    const windows = await chrome.windows.getAll()
+    const windowExists = windows.some((w) => w.id === targetWindowId)
+    if (!windowExists) {
+      targetWindowId = (await chrome.windows.getCurrent()).id ?? targetWindowId
+      targetIndex = -1
+    }
+  } catch {
+    targetWindowId = undefined
+    targetIndex = -1
+  }
+
+  const createProps: chrome.tabs.CreateProperties = { url: item.url, active: true }
+  if (targetWindowId) createProps.windowId = targetWindowId
+  if (targetIndex >= 0) createProps.index = targetIndex
+
+  const tab = await chrome.tabs.create(createProps)
   const tabId = tab.id
   if (!tabId) return
 

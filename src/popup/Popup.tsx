@@ -103,10 +103,10 @@ export default function Popup() {
         </div>
         <button
           onClick={toggleEnabled}
-          className={`relative w-9 h-5 rounded-full transition-colors ${enabled ? 'bg-emerald-500/60' : 'bg-zinc-700'}`}
+          className={`flex items-center w-9 h-5 rounded-full p-0.5 transition-colors ${enabled ? 'bg-emerald-500/60 justify-end' : 'bg-zinc-700 justify-start'}`}
           title={enabled ? 'Disable extension' : 'Enable extension'}
         >
-          <span className={`absolute top-0.5 left-0.5 size-4 rounded-full bg-white transition-transform ${enabled ? 'translate-x-4' : 'translate-x-0'}`} />
+          <span className="size-4 rounded-full bg-white transition-all" />
         </button>
       </div>
 

@@ -72,6 +72,8 @@ async function archiveTab(tabId: number): Promise<void> {
       collection: 'default',
       createdAt: Date.now(),
       lastViewed: Date.now(),
+      tabIndex: tab.index,
+      windowId: tab.windowId,
     })
 
     await chrome.tabs.remove(tabId)

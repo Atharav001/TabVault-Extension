@@ -13,6 +13,8 @@ export interface VaultItem {
   collection: string
   createdAt: number
   lastViewed: number
+  tabIndex: number
+  windowId: number
 }
 
 const vaultDB = new Dexie('MemoryVault') as Dexie & {
