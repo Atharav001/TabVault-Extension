@@ -8,6 +8,7 @@ import SearchBar from './SearchBar'
 import Collections from './Collections'
 import VirtualList from './VirtualList'
 import EmptyState from './EmptyState'
+import SettingsView from './SettingsView'
 import Toast from './Toast'
 
 function IconSend() {
@@ -22,6 +23,14 @@ function IconSnapshot() {
   return (
     <svg className="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
       <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5" />
+    </svg>
+  )
+}
+
+function IconClose() {
+  return (
+    <svg className="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
     </svg>
   )
 }
@@ -42,6 +51,7 @@ export default function Panel() {
   const collections = useVaultStore((s) => s.collections)
   const showToast = useVaultStore((s) => s.showToast)
 
+  const [showSettings, setShowSettings] = useState(false)
   const [restoring, setRestoring] = useState(false)
   const [sendingTab, setSendingTab] = useState(false)
   const [showMoveMenu, setShowMoveMenu] = useState(false)
@@ -61,8 +71,6 @@ export default function Panel() {
   useEffect(() => {
     const root = document.documentElement
     root.classList.toggle('light', theme === 'light')
-    root.style.backgroundColor = theme === 'light' ? '#f5f5f5' : '#121212'
-    root.style.color = theme === 'light' ? '#18181b' : '#e4e4e7'
   }, [theme])
 
   useEffect(() => {
@@ -178,23 +186,45 @@ export default function Panel() {
     }
   }
 
-  const bg = theme === 'light' ? 'bg-[#f5f5f5]' : 'bg-[#121212]'
-  const text = theme === 'light' ? 'text-zinc-800' : 'text-zinc-100'
-  const subtext = theme === 'light' ? 'text-zinc-500' : 'text-zinc-400'
-  const border = theme === 'light' ? 'border-zinc-200/60' : 'border-zinc-800/40'
+  const isLight = theme === 'light'
+
+  const bg = isLight
+    ? 'bg-gradient-to-br from-zinc-50/95 via-white/90 to-zinc-100/90'
+    : 'bg-[#121212]'
+
+  const text = isLight ? 'text-zinc-700' : 'text-zinc-100'
+  const subtext = isLight ? 'text-zinc-400' : 'text-zinc-400'
+  const border = isLight ? 'border-zinc-200/50' : 'border-zinc-800/40'
+  const headerBg = isLight
+    ? 'bg-gradient-to-b from-white/60 via-white/20 to-transparent'
+    : 'bg-gradient-to-b from-zinc-900/20 to-transparent'
+  const actionBtnLight = isLight
+    ? 'bg-white/50 backdrop-blur-xl border-zinc-200/50 text-zinc-500 hover:text-zinc-700 hover:bg-white/70 hover:border-zinc-300/60'
+    : 'text-zinc-600 hover:text-zinc-300 hover:bg-zinc-800/40 border-transparent hover:border-zinc-700/50'
+  const barBg = isLight
+    ? 'bg-gradient-to-t from-white/60 via-white/30 to-transparent border-zinc-200/40'
+    : 'bg-gradient-to-t from-zinc-900/30 to-transparent'
+
+  if (showSettings) {
+    return (
+      <div className={`flex flex-col h-screen ${bg} ${text} overflow-hidden`}>
+        <SettingsView onBack={() => setShowSettings(false)} />
+      </div>
+    )
+  }
 
   return (
     <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
       <div className={`flex flex-col h-screen ${bg} ${text} overflow-hidden relative`}>
-        <div className="relative bg-gradient-to-b from-zinc-900/20 to-transparent">
-          <SearchBar />
+        <div className={`relative ${headerBg}`}>
+          <SearchBar onToggleSettings={() => setShowSettings(true)} />
           <div className="flex items-center justify-between px-3 pb-1">
             <Collections />
             <div className="flex items-center gap-1.5">
               <button
                 onClick={snapshotToday}
                 disabled={snapshotting}
-                className="shrink-0 flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-[11px] font-medium bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 hover:text-amber-300 border border-amber-500/20 hover:border-amber-500/40 transition-colors disabled:opacity-40"
+                className={`shrink-0 flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-[11px] font-medium transition-colors disabled:opacity-40 ${actionBtnLight} ${isLight ? 'bg-amber-50/60 text-amber-600 hover:text-amber-700 hover:bg-amber-100/60 border-amber-200/50' : 'bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 hover:text-amber-300 border-amber-500/20 hover:border-amber-500/40'}`}
                 title="Snapshot all tabs in current window"
               >
                 <IconSnapshot />
@@ -203,7 +233,7 @@ export default function Panel() {
               <button
                 onClick={sendCurrentTab}
                 disabled={sendingTab}
-                className="shrink-0 flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-[11px] font-medium bg-violet-500/10 hover:bg-violet-500/20 text-violet-400 hover:text-violet-300 border border-violet-500/20 hover:border-violet-500/40 transition-colors disabled:opacity-40"
+                className={`shrink-0 flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-[11px] font-medium transition-colors disabled:opacity-40 ${actionBtnLight} ${isLight ? 'bg-violet-50/60 text-violet-600 hover:text-violet-700 hover:bg-violet-100/60 border-violet-200/50' : 'bg-violet-500/10 hover:bg-violet-500/20 text-violet-400 hover:text-violet-300 border-violet-500/20 hover:border-violet-500/40'}`}
                 title="Send current tab to vault"
               >
                 <IconSend />
@@ -211,15 +241,6 @@ export default function Panel() {
               </button>
             </div>
           </div>
-          <button
-            onClick={() => window.close()}
-            className="absolute top-2 right-2 size-6 flex items-center justify-center rounded-lg text-zinc-600 hover:text-zinc-300 hover:bg-zinc-800/60 backdrop-blur-sm transition-colors border border-transparent hover:border-zinc-700/50"
-            title="Close panel"
-          >
-            <svg className="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
-            </svg>
-          </button>
         </div>
 
         {filtered.length === 0 ? (
@@ -229,7 +250,7 @@ export default function Panel() {
         )}
 
         {selectedIds.length > 0 ? (
-          <div className={`shrink-0 border-t ${border} px-3 py-2.5 bg-gradient-to-t from-zinc-900/40 to-transparent backdrop-blur-sm`}>
+          <div className={`shrink-0 border-t ${border} px-3 py-2.5 ${barBg}`}>
             <div className="flex items-center gap-2">
               <span className={`text-xs font-medium ${subtext} mr-auto`}>
                 {selectedIds.length} selected
@@ -237,17 +258,17 @@ export default function Panel() {
               <div className="relative">
                 <button
                   onClick={() => setShowMoveMenu(!showMoveMenu)}
-                  className="px-2.5 py-1.5 rounded-xl text-[11px] font-medium bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 hover:text-amber-300 border border-amber-500/20 hover:border-amber-500/40 transition-colors"
+                  className={`px-2.5 py-1.5 rounded-xl text-[11px] font-medium transition-colors ${isLight ? 'bg-amber-50/60 text-amber-600 hover:text-amber-700 hover:bg-amber-100/60 border border-amber-200/50' : 'bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 hover:text-amber-300 border border-amber-500/20 hover:border-amber-500/40'}`}
                 >
                   Move to
                 </button>
                 {showMoveMenu && (
-                  <div className="absolute bottom-full mb-1 right-0 bg-zinc-900/95 backdrop-blur-xl border border-zinc-700/60 rounded-xl py-1 shadow-xl max-h-48 overflow-y-auto min-w-[120px]">
+                  <div className={`absolute bottom-full mb-1 right-0 backdrop-blur-xl border rounded-xl py-1 shadow-xl max-h-48 overflow-y-auto min-w-[120px] ${isLight ? 'bg-white/90 border-zinc-200/60' : 'bg-zinc-900/95 border-zinc-700/60'}`}>
                     {Object.keys(collections).map((name) => (
                       <button
                         key={name}
                         onClick={() => { bulkMoveToCollection(name); setShowMoveMenu(false) }}
-                        className="w-full text-left px-3 py-1.5 text-xs text-zinc-300 hover:bg-zinc-800/60 transition-colors"
+                        className={`w-full text-left px-3 py-1.5 text-xs transition-colors ${isLight ? 'text-zinc-600 hover:bg-zinc-100/60' : 'text-zinc-300 hover:bg-zinc-800/60'}`}
                       >
                         {name}
                       </button>
@@ -257,20 +278,20 @@ export default function Panel() {
               </div>
               <button
                 onClick={bulkDelete}
-                className="px-2.5 py-1.5 rounded-xl text-[11px] font-medium bg-red-500/10 hover:bg-red-500/20 text-red-400 hover:text-red-300 border border-red-500/20 hover:border-red-500/40 transition-colors"
+                className={`px-2.5 py-1.5 rounded-xl text-[11px] font-medium transition-colors ${isLight ? 'bg-red-50/60 text-red-600 hover:text-red-700 hover:bg-red-100/60 border border-red-200/50' : 'bg-red-500/10 hover:bg-red-500/20 text-red-400 hover:text-red-300 border border-red-500/20 hover:border-red-500/40'}`}
               >
                 Delete ({selectedIds.length})
               </button>
               <button
                 onClick={clearSelection}
-                className={`px-2.5 py-1.5 rounded-xl text-[11px] font-medium bg-zinc-800/30 hover:bg-zinc-800/50 ${subtext} hover:text-zinc-300 border border-zinc-800/50 hover:border-zinc-700/50 transition-colors`}
+                className={`px-2.5 py-1.5 rounded-xl text-[11px] font-medium transition-colors ${isLight ? 'bg-white/60 text-zinc-500 hover:text-zinc-700 hover:bg-white/80 border border-zinc-200/50' : 'bg-zinc-800/30 hover:bg-zinc-800/50 text-zinc-400 hover:text-zinc-300 border border-zinc-800/50 hover:border-zinc-700/50'}`}
               >
                 Cancel
               </button>
             </div>
           </div>
         ) : (
-          <div className={`shrink-0 border-t ${border} px-3 py-2 bg-gradient-to-t from-zinc-900/30 to-transparent backdrop-blur-sm space-y-1.5`}>
+          <div className={`shrink-0 border-t ${border} px-3 py-2 ${barBg} space-y-1.5`}>
             <button
               onClick={async () => {
                 setRestoring(true)
@@ -287,13 +308,13 @@ export default function Panel() {
                 setRestoring(false)
               }}
               disabled={restoring || filtered.length === 0}
-              className="w-full py-2 rounded-xl text-xs font-medium text-emerald-600 hover:text-emerald-300 hover:bg-zinc-800/40 backdrop-blur-sm transition-colors border border-transparent hover:border-emerald-800/60 disabled:opacity-30"
+              className={`w-full py-2 rounded-xl text-xs font-medium transition-colors disabled:opacity-30 ${isLight ? 'bg-emerald-50/60 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-100/60 border border-emerald-200/50 hover:border-emerald-300/60' : 'text-emerald-600 hover:text-emerald-300 hover:bg-zinc-800/40 border border-transparent hover:border-emerald-800/60'}`}
             >
               {restoring ? 'Restoring...' : `Restore All (${filtered.length})`}
             </button>
             <button
               onClick={exportToMarkdown}
-              className="w-full py-1.5 rounded-xl text-[11px] font-medium text-zinc-600 hover:text-zinc-300 hover:bg-zinc-800/40 backdrop-blur-sm transition-colors border border-transparent hover:border-zinc-800/60"
+              className={`w-full py-1.5 rounded-xl text-[11px] font-medium transition-colors ${isLight ? 'bg-white/50 text-zinc-500 hover:text-zinc-700 hover:bg-white/70 border border-zinc-200/50 hover:border-zinc-300/60' : 'text-zinc-600 hover:text-zinc-300 hover:bg-zinc-800/40 border border-transparent hover:border-zinc-800/60'}`}
             >
               Export to Markdown
             </button>
