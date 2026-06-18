@@ -4,7 +4,7 @@ export default function ArchiveToast() {
   const pending = useVaultStore((s) => s.pendingAutoArchive)
   const archivePendingTabs = useVaultStore((s) => s.archivePendingTabs)
   const snoozePendingTabs = useVaultStore((s) => s.snoozePendingTabs)
-  const clearPendingAutoArchive = useVaultStore((s) => s.clearPendingAutoArchive)
+  const dismissPendingTabs = useVaultStore((s) => s.dismissPendingTabs)
   const theme = useVaultStore((s) => s.theme)
   const isLight = theme === 'light'
 
@@ -43,9 +43,9 @@ export default function ArchiveToast() {
               Snooze 1hr
             </button>
             <button
-              onClick={clearPendingAutoArchive}
+              onClick={dismissPendingTabs}
               className={`p-1.5 rounded-full transition-all duration-200 hover:scale-110 active:scale-90 ${isLight ? 'text-amber-400 hover:text-amber-600 hover:bg-amber-100/50' : 'text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800'}`}
-              title="Dismiss"
+              title="No, skip 3 hours"
             >
               <svg className="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />

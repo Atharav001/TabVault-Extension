@@ -292,6 +292,9 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   } else if (message.type === 'CLEAR_PENDING') {
     chrome.storage.local.remove(PENDING_KEY, () => sendResponse(true))
     return true
+  } else if (message.type === 'DISMISS_PENDING' && Array.isArray(message.tabIds)) {
+    handleDismissPending(message.tabIds).then(() => sendResponse(true))
+    return true
   }
 })
 
@@ -314,6 +317,16 @@ async function handleSnoozePending(tabIds: number[]): Promise<void> {
   const now = Date.now()
   for (const tabId of tabIds) {
     activity[tabId] = now + 3600000
+  }
+  await setTabActivity(activity)
+  await chrome.storage.local.remove(PENDING_KEY)
+}
+
+async function handleDismissPending(tabIds: number[]): Promise<void> {
+  const activity = await getTabActivity()
+  const now = Date.now()
+  for (const tabId of tabIds) {
+    activity[tabId] = now + 10800000
   }
   await setTabActivity(activity)
   await chrome.storage.local.remove(PENDING_KEY)
@@ -352,12 +365,7 @@ async function cleanupInactiveTabs(): Promise<void> {
       try {
         const tab = await chrome.tabs.get(tabId)
         if (tab.pinned) continue
-        const lastActive = activity[tabId] || 0
-        if (lastActive > 0 && now - lastActive > STALE_THRESHOLD) {
-          await archiveTab(tabId)
-        } else {
-          stillPending.push(tabId)
-        }
+        stillPending.push(tabId)
       } catch {
       }
     }
@@ -375,26 +383,25 @@ async function cleanupInactiveTabs(): Promise<void> {
       }
     }
 
-    if (staleTabs.length === 0) {
-      if (stillPending.length === 0) {
-        await chrome.storage.local.remove(PENDING_KEY)
-      }
+    if (staleTabs.length === 0 && stillPending.length === 0) {
+      await chrome.storage.local.remove(PENDING_KEY)
       return
     }
 
-    const newPendingIds = staleTabs.map(t => t.id!).filter(Boolean)
-    await chrome.storage.local.set({ [PENDING_KEY]: newPendingIds })
+    const mergedPending = [...stillPending, ...staleTabs.map(t => t.id!).filter(Boolean)]
+    const uniquePending = [...new Set(mergedPending)]
+    await chrome.storage.local.set({ [PENDING_KEY]: uniquePending })
 
-    const pendingTabs = staleTabs.map(t => ({
-      tabId: t.id!,
-      title: t.title || 'Untitled',
-      url: t.url || '',
-    }))
-
-    notifySidePanel({
-      type: 'PENDING_AUTO_ARCHIVE',
-      tabs: pendingTabs,
-    })
+    if (staleTabs.length > 0) {
+      notifySidePanel({
+        type: 'PENDING_AUTO_ARCHIVE',
+        tabs: staleTabs.map(t => ({
+          tabId: t.id!,
+          title: t.title || 'Untitled',
+          url: t.url || '',
+        })),
+      })
+    }
   } catch (err) {
     console.error('cleanupInactiveTabs error:', err)
   }

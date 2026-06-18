@@ -54,6 +54,7 @@ interface VaultStore {
   clearPendingAutoArchive: () => void
   archivePendingTabs: () => Promise<void>
   snoozePendingTabs: () => Promise<void>
+  dismissPendingTabs: () => Promise<void>
 }
 
 export const useVaultStore = create<VaultStore>((set, get) => ({
@@ -225,6 +226,14 @@ export const useVaultStore = create<VaultStore>((set, get) => ({
     if (pendingAutoArchive.length === 0) return
     const tabIds = pendingAutoArchive.map(t => t.tabId)
     await chrome.runtime.sendMessage({ type: 'SNOOZE_PENDING', tabIds })
+    set({ pendingAutoArchive: [] })
+  },
+
+  dismissPendingTabs: async () => {
+    const { pendingAutoArchive } = get()
+    if (pendingAutoArchive.length === 0) return
+    const tabIds = pendingAutoArchive.map(t => t.tabId)
+    await chrome.runtime.sendMessage({ type: 'DISMISS_PENDING', tabIds })
     set({ pendingAutoArchive: [] })
   },
 }))
