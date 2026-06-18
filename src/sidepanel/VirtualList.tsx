@@ -1,10 +1,11 @@
 import { useRef, useEffect, memo, useMemo, useState } from 'react'
 import { useVirtualizer } from '@tanstack/react-virtual'
 import type { VaultItem as VaultItemType } from '../db/vaultDB'
-import { ListVaultItem, CardVaultItem } from './VaultItem'
+import { ListVaultItem, CardVaultItem, CompactVaultItem } from './VaultItem'
 import { useVaultStore } from '../store/useVaultStore'
 
 const CARD_SIZE = 100
+const GRID_ROW_HEIGHT = 44
 
 type Row =
   | { type: 'header'; label: string; isSession: boolean }
@@ -91,9 +92,11 @@ function VirtualListInner({ items, viewMode }: { items: VaultItemType[]; viewMod
       const row = rows[index]
       if (!row) return 54
       if (row.type === 'header') return 28
-      return useMultiCol ? CARD_SIZE + 8 : 54
+      if (isGrid) return GRID_ROW_HEIGHT
+      if (isCard) return CARD_SIZE + 8
+      return 54
     }
-  }, [rows, useMultiCol])
+  }, [rows, isCard, isGrid])
 
   const virtualizer = useVirtualizer({
     count: rows.length,
@@ -199,10 +202,10 @@ function VirtualListInner({ items, viewMode }: { items: VaultItemType[]; viewMod
                   transform: `translateY(${virtualRow.start}px)`,
                 }}
               >
-                <div className="flex gap-1.5 px-0 py-1 h-full">
+                <div className={`flex gap-1.5 px-0 ${isGrid ? 'py-0.5' : 'py-1'} h-full`}>
                   {group.items.map((item) => (
                     <div key={item.id} className="flex-1 min-w-0">
-                      <CardVaultItem item={item} />
+                      {isGrid ? <CompactVaultItem item={item} /> : <CardVaultItem item={item} />}
                     </div>
                   ))}
                   {group.items.length < columns && Array.from({ length: columns - group.items.length }).map((_, i) => (

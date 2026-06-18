@@ -277,7 +277,40 @@ function CardItem({ item }: { item: VaultItemType }) {
   )
 }
 
+function CompactListItem({ item }: { item: VaultItemType }) {
+  const deleteItem = useVaultStore((s) => s.deleteItem)
+  const selectedIds = useVaultStore((s) => s.selectedIds)
+  const toggleSelect = useVaultStore((s) => s.toggleSelect)
+  const theme = useVaultStore((s) => s.theme)
+  const isLight = theme === 'light'
+  const isSelected = item.id ? selectedIds.includes(item.id) : false
+  const cardCls = isLight ? 'bg-white border-zinc-200' : 'bg-zinc-900 border-zinc-800'
+  const hoverCls = isLight ? 'hover:bg-zinc-50' : 'hover:bg-zinc-800/50'
+  const selectedCls = isLight ? 'border-indigo-400/60 bg-indigo-50/60' : 'border-indigo-500/40 bg-zinc-800/50'
+  const textCls = isLight ? 'text-zinc-800' : 'text-zinc-100'
+
+  return (
+    <div className={`flex items-center gap-1.5 px-1.5 py-1.5 rounded-md border transition-colors ${cardCls} ${isSelected ? selectedCls : hoverCls}`}>
+      <div onClick={(e) => e.stopPropagation()}>
+        <Checkbox checked={isSelected} onToggle={() => item.id && toggleSelect(item.id)} />
+      </div>
+      <Favicon item={item} />
+      <span className={`text-[11px] font-medium leading-tight truncate flex-1 min-w-0 ${textCls}`}>{item.title || 'Untitled'}</span>
+      <button
+        onClick={(e) => { e.stopPropagation(); if (item.id) deleteItem(item.id) }}
+        className="p-0.5 rounded text-zinc-400 hover:text-red-500 transition-all duration-200 shrink-0"
+        title="Delete"
+      >
+        <svg className="size-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
+        </svg>
+      </button>
+    </div>
+  )
+}
+
 const ListVaultItem = memo(ListItem)
 const CardVaultItem = memo(CardItem)
+const CompactVaultItem = memo(CompactListItem)
 
-export { ListVaultItem, CardVaultItem, Favicon, FaviconCard, Checkbox }
+export { ListVaultItem, CardVaultItem, CompactVaultItem, Favicon, FaviconCard, Checkbox }
