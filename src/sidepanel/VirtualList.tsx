@@ -60,7 +60,9 @@ function VirtualListInner({ items, viewMode }: { items: VaultItemType[]; viewMod
   const scrollRef = useRef<HTMLDivElement>(null)
   const isCard = viewMode === 'card'
   const isLight = useVaultStore((s) => s.theme) === 'light'
-  const cardColumns = useVaultStore((s) => s.cardColumns)
+  const listColumns = useVaultStore((s) => s.listColumns)
+  const isGrid = !isCard && listColumns === '2'
+  const useMultiCol = isCard || isGrid
 
   const [containerWidth, setContainerWidth] = useState(360)
 
@@ -75,12 +77,12 @@ function VirtualListInner({ items, viewMode }: { items: VaultItemType[]; viewMod
   }, [])
 
   const columns = useMemo(() => {
-    if (!isCard) return 1
-    if (cardColumns !== 'auto') return Number(cardColumns)
+    if (!useMultiCol) return 1
+    if (isGrid) return 2
     const gap = 8
     const available = containerWidth - 24
     return Math.max(1, Math.floor((available + gap) / (CARD_SIZE + gap)))
-  }, [cardColumns, containerWidth, isCard])
+  }, [useMultiCol, isGrid, containerWidth])
 
   const rows = useMemo(() => buildRows(items), [items])
 
@@ -89,15 +91,15 @@ function VirtualListInner({ items, viewMode }: { items: VaultItemType[]; viewMod
       const row = rows[index]
       if (!row) return 54
       if (row.type === 'header') return 28
-      return isCard ? CARD_SIZE + 8 : 54
+      return useMultiCol ? CARD_SIZE + 8 : 54
     }
-  }, [rows, isCard])
+  }, [rows, useMultiCol])
 
   const virtualizer = useVirtualizer({
     count: rows.length,
     getScrollElement: () => scrollRef.current,
     estimateSize,
-    overscan: isCard ? 3 : 8,
+    overscan: useMultiCol ? 3 : 8,
   })
 
   useEffect(() => {
@@ -112,18 +114,18 @@ function VirtualListInner({ items, viewMode }: { items: VaultItemType[]; viewMod
   }
 
   const itemRows = useMemo(() => {
-    if (!isCard) return []
+    if (!useMultiCol) return []
     return rows.filter((r): r is { type: 'item'; item: VaultItemType } => r.type === 'item')
-  }, [rows, isCard])
+  }, [rows, useMultiCol])
 
-  const cardGroups = useMemo(() => {
-    if (!isCard) return []
+  const colGroups = useMemo(() => {
+    if (!useMultiCol) return []
     const groups: { items: VaultItemType[] }[] = []
     for (let i = 0; i < itemRows.length; i += columns) {
       groups.push({ items: itemRows.slice(i, i + columns).map(r => r.item) })
     }
     return groups
-  }, [itemRows, columns, isCard])
+  }, [itemRows, columns, useMultiCol])
 
   return (
     <div ref={scrollRef} className="h-full overflow-y-auto px-3">
@@ -156,7 +158,7 @@ function VirtualListInner({ items, viewMode }: { items: VaultItemType[]; viewMod
             )
           }
 
-          if (isCard) {
+          if (useMultiCol) {
             return null
           }
 
@@ -176,13 +178,13 @@ function VirtualListInner({ items, viewMode }: { items: VaultItemType[]; viewMod
           )
         })}
 
-        {isCard && (() => {
+        {useMultiCol && (() => {
           let groupIdx = 0
           return virtualizer.getVirtualItems().map((virtualRow) => {
             const row = rows[virtualRow.index]
             if (!row || row.type === 'header') return null
 
-            const group = cardGroups[groupIdx++]
+            const group = colGroups[groupIdx++]
             if (!group) return null
 
             return (

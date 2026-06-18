@@ -24,7 +24,7 @@ interface VaultStore {
   searchQuery: string
   selectedCollection: string | null
   viewMode: 'list' | 'card'
-  cardColumns: 'auto' | '1' | '2'
+  listColumns: 'auto' | '1' | '2'
   isLoading: boolean
   selectedIds: number[]
   theme: 'dark' | 'light'
@@ -34,7 +34,7 @@ interface VaultStore {
   setSearchQuery: (query: string) => void
   setSelectedCollection: (collection: string | null) => void
   setViewMode: (mode: 'list' | 'card') => void
-  setCardColumns: (mode: 'auto' | '1' | '2') => void
+  setListColumns: (mode: 'auto' | '1' | '2') => void
   fetchItems: () => Promise<void>
   deleteItem: (id: number) => Promise<void>
   moveToCollection: (itemId: number, collection: string) => Promise<void>
@@ -68,7 +68,7 @@ export const useVaultStore = create<VaultStore>((set, get) => ({
   searchQuery: '',
   selectedCollection: null,
   viewMode: 'list',
-  cardColumns: 'auto',
+  listColumns: 'auto',
   isLoading: false,
   selectedIds: [],
   theme: 'dark',
@@ -80,7 +80,7 @@ export const useVaultStore = create<VaultStore>((set, get) => ({
   setSelectedCollection: (collection) => set({ selectedCollection: collection, selectedIds: [] }),
 
   setViewMode: (mode) => set({ viewMode: mode }),
-  setCardColumns: (mode) => set({ cardColumns: mode }),
+  setListColumns: (mode) => set({ listColumns: mode }),
 
   fetchItems: async () => {
     set({ isLoading: true })

@@ -59,8 +59,14 @@ export default function Panel() {
 
   useEffect(() => {
     fetchItems()
-    chrome.storage.local.get('theme', (r) => {
+    chrome.storage.local.get(['theme', 'pendingAutoArchive'], (r) => {
       if (r.theme) useVaultStore.getState().setTheme(r.theme)
+      if (Array.isArray(r.pendingAutoArchive) && r.pendingAutoArchive.length > 0) {
+        const ids: number[] = r.pendingAutoArchive
+        useVaultStore.getState().setPendingAutoArchive(
+          ids.map((tabId) => ({ tabId, title: '', url: '' }))
+        )
+      }
     })
   }, [fetchItems])
 
