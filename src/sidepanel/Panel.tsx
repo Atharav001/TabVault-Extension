@@ -250,7 +250,7 @@ export default function Panel() {
       <div className={`flex flex-col h-screen overflow-hidden relative ${isLight ? 'text-zinc-800' : 'text-zinc-100'}`}>
         <div className={`sticky top-0 z-10 ${headerBg}`}>
           <SearchBar onToggleSettings={() => setShowSettings(true)} />
-          <div className="flex items-center gap-2 px-3 pb-1.5">
+          <div className="flex items-center gap-2 px-2 pb-1">
             <div className="flex-1 min-w-0">
               <Collections />
             </div>
@@ -290,7 +290,7 @@ export default function Panel() {
         </div>
 
         {selectedIds.length > 0 ? (
-          <div className={`shrink-0 sticky bottom-0 z-10 border-t ${border} px-4 py-3 ${barBg}`}>
+          <div className={`shrink-0 sticky bottom-0 z-10 border-t ${border} px-3 py-2.5 ${barBg}`}>
             <div className="flex items-center gap-2">
               <span className={`text-xs font-medium ${subtext} mr-auto`}>
                 {selectedIds.length} selected
@@ -337,7 +337,7 @@ export default function Panel() {
             </div>
           </div>
         ) : (
-          <div className={`shrink-0 sticky bottom-0 z-10 border-t ${border} px-4 py-3 ${barBg} space-y-2`}>
+          <div className={`shrink-0 sticky bottom-0 z-10 border-t ${border} px-3 py-2.5 ${barBg} space-y-1.5`}>
             <button
               onClick={async () => {
                 setRestoring(true)

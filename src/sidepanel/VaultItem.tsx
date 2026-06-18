@@ -148,7 +148,7 @@ function ListItem({ item, style }: { item: VaultItemType; style?: React.CSSPrope
       {...attributes}
       style={{ ...style, ...dragStyle }}
       className={`
-        flex items-start gap-2.5 px-3 py-2.5 rounded-lg cursor-grab active:cursor-grabbing
+        flex items-start gap-2 px-2 py-2 rounded-lg cursor-grab active:cursor-grabbing
         transition-all border
         ${cardCls}
         ${isSelected ? selectedCls : ''}

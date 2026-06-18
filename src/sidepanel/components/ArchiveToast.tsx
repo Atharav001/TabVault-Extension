@@ -14,7 +14,7 @@ export default function ArchiveToast() {
 
   return (
     <div className="shrink-0 animate-slide-down">
-      <div className={`mx-3 my-1.5 px-4 py-3 rounded-xl border shadow-lg backdrop-blur-md ${isLight ? 'bg-amber-50/95 border-amber-200/60' : 'bg-zinc-900/95 border-zinc-700/60'}`}>
+      <div className={`mx-2 my-1 px-3 py-2.5 rounded-xl border shadow-lg backdrop-blur-md ${isLight ? 'bg-amber-50/95 border-amber-200/60' : 'bg-zinc-900/95 border-zinc-700/60'}`}>
         <div className="flex items-start gap-3">
           <div className="shrink-0 mt-0.5">
             <svg className={`size-4 ${isLight ? 'text-amber-500' : 'text-amber-400'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>

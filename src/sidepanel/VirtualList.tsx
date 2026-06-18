@@ -128,7 +128,7 @@ function VirtualListInner({ items, viewMode }: { items: VaultItemType[]; viewMod
   }, [itemRows, columns, useMultiCol])
 
   return (
-    <div ref={scrollRef} className="h-full overflow-y-auto px-3">
+    <div ref={scrollRef} className="h-full overflow-y-auto px-2">
       <div
         style={{ height: `${virtualizer.getTotalSize()}px`, position: 'relative' }}
       >

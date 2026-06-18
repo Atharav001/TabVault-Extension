@@ -79,7 +79,7 @@ export default function SearchBar({ onToggleSettings }: { onToggleSettings: () =
 
   if (isNarrow && searchActive) {
     return (
-      <div ref={containerRef} className="flex items-center gap-2 px-3 pt-3 pb-2">
+      <div ref={containerRef} className="flex items-center gap-2 px-2 pt-2 pb-1.5">
         <button
           onClick={() => { setSearchActive(false); setSearchQuery('') }}
           className={`shrink-0 size-8 flex items-center justify-center rounded-xl ${btnTransition} ${backCls}`}
@@ -98,7 +98,7 @@ export default function SearchBar({ onToggleSettings }: { onToggleSettings: () =
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search vault..."
-            className={`w-full pl-9 pr-3 py-2 rounded-xl border text-sm transition-all outline-none ${inputCls}`}
+            className={`w-full pl-8 pr-2.5 py-1.5 rounded-xl border text-sm transition-all outline-none ${inputCls}`}
           />
         </div>
       </div>
@@ -106,7 +106,7 @@ export default function SearchBar({ onToggleSettings }: { onToggleSettings: () =
   }
 
   return (
-    <div ref={containerRef} className="flex items-center gap-2 px-3 pt-3 pb-2">
+    <div ref={containerRef} className="flex items-center gap-2 px-2 pt-2 pb-1.5">
       {isNarrow ? (
         <button
           onClick={() => setSearchActive(true)}
@@ -127,7 +127,7 @@ export default function SearchBar({ onToggleSettings }: { onToggleSettings: () =
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search vault..."
-            className={`w-full pl-9 pr-3 py-2 rounded-xl border text-sm transition-all outline-none ${inputCls}`}
+            className={`w-full pl-8 pr-2.5 py-1.5 rounded-xl border text-sm transition-all outline-none ${inputCls}`}
           />
         </div>
       )}

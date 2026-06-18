@@ -46,7 +46,7 @@ export default function Collections() {
     : 'bg-zinc-800/50 text-zinc-500 hover:text-zinc-300 hover:bg-zinc-700/60 border-transparent'
 
   return (
-    <div className="min-w-0 overflow-hidden px-3 pb-2">
+    <div className="min-w-0 overflow-hidden px-2 pb-1.5">
       <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none">
         <button
           onClick={() => {
