@@ -25,7 +25,7 @@ async function isExtensionEnabled(): Promise<boolean> {
 async function updateBadge(): Promise<void> {
   const count = await vaultDB.vault_items.count()
   chrome.action.setBadgeText({ text: count > 0 ? (count > 99 ? '99+' : String(count)) : '' })
-  chrome.action.setBadgeBackgroundColor({ color: '#333333' })
+  chrome.action.setBadgeBackgroundColor({ color: '#0040a0' })
 }
 
 async function fetchFaviconBase64(favIconUrl: string): Promise<string> {
