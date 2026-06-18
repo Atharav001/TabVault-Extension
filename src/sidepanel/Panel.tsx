@@ -8,11 +8,20 @@ import SearchBar from './SearchBar'
 import Collections from './Collections'
 import VirtualList from './VirtualList'
 import EmptyState from './EmptyState'
+import Toast from './Toast'
 
 function IconSend() {
   return (
     <svg className="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
       <path strokeLinecap="round" strokeLinejoin="round" d="M6 12 3.269 3.125A59.769 59.769 0 0 1 21.485 12 59.768 59.768 0 0 1 3.27 20.875L5.999 12Zm0 0h7.5" />
+    </svg>
+  )
+}
+
+function IconSnapshot() {
+  return (
+    <svg className="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5" />
     </svg>
   )
 }
@@ -25,17 +34,18 @@ export default function Panel() {
   const fetchItems = useVaultStore((s) => s.fetchItems)
   const moveToCollection = useVaultStore((s) => s.moveToCollection)
   const selectedIds = useVaultStore((s) => s.selectedIds)
-  const toggleSelect = useVaultStore((s) => s.toggleSelect)
   const selectAll = useVaultStore((s) => s.selectAll)
   const clearSelection = useVaultStore((s) => s.clearSelection)
   const bulkDelete = useVaultStore((s) => s.bulkDelete)
   const bulkMoveToCollection = useVaultStore((s) => s.bulkMoveToCollection)
   const theme = useVaultStore((s) => s.theme)
   const collections = useVaultStore((s) => s.collections)
+  const showToast = useVaultStore((s) => s.showToast)
 
   const [restoring, setRestoring] = useState(false)
   const [sendingTab, setSendingTab] = useState(false)
   const [showMoveMenu, setShowMoveMenu] = useState(false)
+  const [snapshotting, setSnapshotting] = useState(false)
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
@@ -54,6 +64,17 @@ export default function Panel() {
     root.style.backgroundColor = theme === 'light' ? '#f5f5f5' : '#121212'
     root.style.color = theme === 'light' ? '#18181b' : '#e4e4e7'
   }, [theme])
+
+  useEffect(() => {
+    function handler(e: MessageEvent) {
+      if (e.data?.type === 'TABS_ARCHIVED') {
+        showToast(`Archived ${e.data.count} tabs`, e.data.ids)
+        fetchItems()
+      }
+    }
+    window.addEventListener('message', handler)
+    return () => window.removeEventListener('message', handler)
+  }, [showToast, fetchItems])
 
   const filtered = useMemo(() => {
     let result = items
@@ -132,6 +153,21 @@ export default function Panel() {
     setTimeout(() => setSendingTab(false), 1000)
   }
 
+  async function snapshotToday() {
+    setSnapshotting(true)
+    const tabs = await chrome.tabs.query({ currentWindow: true, pinned: false })
+    const unpinned = tabs.filter(t => !t.pinned && t.id && t.url && !t.url.startsWith('chrome://') && !t.url.startsWith('brave://') && !t.url.startsWith('about:'))
+    const tabIds = unpinned.map(t => t.id!).filter(Boolean)
+    const dateStr = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+    const collection = `Session: ${dateStr}`
+    const ids = await chrome.runtime.sendMessage({ type: 'ARCHIVE_TABS_BATCH', tabIds, collection })
+    if (ids && ids.length > 0) {
+      showToast(`Snapshot: ${ids.length} tabs saved`, ids)
+      fetchItems()
+    }
+    setSnapshotting(false)
+  }
+
   function handleDragEnd(event: DragEndEvent) {
     const { active, over } = event
     if (!over || !active) return
@@ -149,20 +185,31 @@ export default function Panel() {
 
   return (
     <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
-      <div className={`flex flex-col h-screen ${bg} ${text} overflow-hidden`}>
+      <div className={`flex flex-col h-screen ${bg} ${text} overflow-hidden relative`}>
         <div className="relative bg-gradient-to-b from-zinc-900/20 to-transparent">
           <SearchBar />
           <div className="flex items-center justify-between px-3 pb-1">
             <Collections />
-            <button
-              onClick={sendCurrentTab}
-              disabled={sendingTab}
-              className="shrink-0 flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-[11px] font-medium bg-violet-500/10 hover:bg-violet-500/20 text-violet-400 hover:text-violet-300 border border-violet-500/20 hover:border-violet-500/40 transition-colors disabled:opacity-40"
-              title="Send current tab to vault"
-            >
-              <IconSend />
-              {sendingTab ? 'Sent' : 'Current Tab'}
-            </button>
+            <div className="flex items-center gap-1.5">
+              <button
+                onClick={snapshotToday}
+                disabled={snapshotting}
+                className="shrink-0 flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-[11px] font-medium bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 hover:text-amber-300 border border-amber-500/20 hover:border-amber-500/40 transition-colors disabled:opacity-40"
+                title="Snapshot all tabs in current window"
+              >
+                <IconSnapshot />
+                {snapshotting ? 'Snap...' : 'Snapshot Today'}
+              </button>
+              <button
+                onClick={sendCurrentTab}
+                disabled={sendingTab}
+                className="shrink-0 flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-[11px] font-medium bg-violet-500/10 hover:bg-violet-500/20 text-violet-400 hover:text-violet-300 border border-violet-500/20 hover:border-violet-500/40 transition-colors disabled:opacity-40"
+                title="Send current tab to vault"
+              >
+                <IconSend />
+                {sendingTab ? 'Sent' : 'Current Tab'}
+              </button>
+            </div>
           </div>
           <button
             onClick={() => window.close()}
@@ -252,6 +299,8 @@ export default function Panel() {
             </button>
           </div>
         )}
+
+        <Toast />
       </div>
     </DndContext>
   )

@@ -1,9 +1,15 @@
 import { create } from 'zustand'
 import { vaultDB, type VaultItem } from '../db/vaultDB'
+import { restoreTab } from '../lib/restore'
 
 const DEFAULT_COLLECTIONS = ['default', 'work', 'personal', 'archive']
 
 type CollectionMap = Record<string, { name: string; color: string }>
+
+interface ToastState {
+  message: string
+  undoIds: number[]
+}
 
 interface VaultStore {
   items: VaultItem[]
@@ -15,6 +21,7 @@ interface VaultStore {
   isLoading: boolean
   selectedIds: number[]
   theme: 'dark' | 'light'
+  toast: ToastState | null
 
   setSearchQuery: (query: string) => void
   setSelectedCollection: (collection: string | null) => void
@@ -30,6 +37,9 @@ interface VaultStore {
   bulkDelete: () => Promise<void>
   bulkMoveToCollection: (collection: string) => Promise<void>
   setTheme: (theme: 'dark' | 'light') => void
+  showToast: (message: string, undoIds: number[]) => void
+  clearToast: () => void
+  undoArchive: () => Promise<void>
 }
 
 export const useVaultStore = create<VaultStore>((set, get) => ({
@@ -47,6 +57,7 @@ export const useVaultStore = create<VaultStore>((set, get) => ({
   isLoading: false,
   selectedIds: [],
   theme: 'dark',
+  toast: null,
 
   setSearchQuery: (query) => set({ searchQuery: query }),
 
@@ -142,4 +153,25 @@ export const useVaultStore = create<VaultStore>((set, get) => ({
   },
 
   setTheme: (theme) => set({ theme }),
+
+  showToast: (message, undoIds) => {
+    set({ toast: { message, undoIds } })
+    setTimeout(() => {
+      if (get().toast?.undoIds === undoIds) set({ toast: null })
+    }, 10000)
+  },
+
+  clearToast: () => set({ toast: null }),
+
+  undoArchive: async () => {
+    const { toast } = get()
+    if (!toast) return
+    for (const id of toast.undoIds) {
+      await restoreTab(id)
+    }
+    await vaultDB.vault_items.bulkDelete(toast.undoIds)
+    set({ toast: null })
+    chrome.runtime.sendMessage({ type: 'UPDATE_BADGE' })
+    get().fetchItems()
+  },
 }))

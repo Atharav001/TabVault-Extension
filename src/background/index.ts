@@ -5,6 +5,7 @@ const STALE_THRESHOLD = 2 * 60 * 60 * 1000
 const MEMORY_PRESSURE_LIMIT = 50
 const MEMORY_PRESSURE_ARCHIVE_COUNT = 5
 const ALARM_NAME = 'cleanup-inactive-tabs'
+const UNDO_KEY = 'lastArchived'
 
 async function getTabActivity(): Promise<Record<number, number>> {
   const result = await chrome.storage.local.get(TAB_ACTIVITY_KEY)
@@ -24,6 +25,21 @@ async function updateBadge(): Promise<void> {
   const count = await vaultDB.vault_items.count()
   chrome.action.setBadgeText({ text: count > 0 ? String(count) : '' })
   chrome.action.setBadgeBackgroundColor({ color: '#333333' })
+}
+
+async function fetchFaviconBase64(favIconUrl: string): Promise<string> {
+  if (!favIconUrl) return ''
+  try {
+    const response = await fetch(favIconUrl, { signal: AbortSignal.timeout(3000) })
+    const blob = await response.blob()
+    return await new Promise<string>((resolve) => {
+      const reader = new FileReader()
+      reader.onloadend = () => resolve(reader.result as string)
+      reader.readAsDataURL(blob)
+    })
+  } catch {
+    return ''
+  }
 }
 
 async function saveLinkToVault(url: string): Promise<void> {
@@ -57,14 +73,14 @@ async function saveLinkToVault(url: string): Promise<void> {
   await updateBadge()
 }
 
-async function archiveTab(tabId: number): Promise<void> {
-  if (!(await isExtensionEnabled())) return
+async function archiveTab(tabId: number): Promise<number | null> {
+  if (!(await isExtensionEnabled())) return null
   try {
     const tab = await chrome.tabs.get(tabId)
-    if (tab.pinned) return
+    if (tab.pinned) return null
     const url = tab.url || ''
     if (!url || url.startsWith('chrome://') || url.startsWith('brave://') || url.startsWith('about:')) {
-      return
+      return null
     }
 
     let groupName = ''
@@ -95,10 +111,12 @@ async function archiveTab(tabId: number): Promise<void> {
     } catch {
     }
 
-    await vaultDB.vault_items.add({
+    const favicon = await fetchFaviconBase64(tab.favIconUrl || '')
+
+    const id = await vaultDB.vault_items.add({
       url,
       title: tab.title || '',
-      favicon: tab.favIconUrl || '',
+      favicon,
       groupName,
       groupColor,
       scrollY,
@@ -117,9 +135,38 @@ async function archiveTab(tabId: number): Promise<void> {
     delete activity[tabId]
     await setTabActivity(activity)
     await updateBadge()
+    return id
   } catch (err) {
     console.error('archiveTab error:', err)
+    return null
   }
+}
+
+async function archiveTabsBatch(
+  tabIds: number[],
+  collection?: string,
+): Promise<number[]> {
+  const ids: number[] = []
+  for (const tabId of tabIds) {
+    const id = await archiveTab(tabId)
+    if (id !== null) ids.push(id)
+  }
+  if (collection) {
+    for (const id of ids) {
+      await vaultDB.vault_items.update(id, { collection })
+    }
+  }
+  if (ids.length > 0) {
+    await chrome.storage.local.set({ [UNDO_KEY]: { ids, count: ids.length, timestamp: Date.now() } })
+    try {
+      const views = chrome.extension.getViews({ type: 'sidebar' })
+      for (const view of views) {
+        view.postMessage({ type: 'TABS_ARCHIVED', ids, count: ids.length }, '*')
+      }
+    } catch {
+    }
+  }
+  return ids
 }
 
 chrome.runtime.onInstalled.addListener(() => {
@@ -186,13 +233,20 @@ chrome.commands.onCommand.addListener((command) => {
   }
 })
 
-chrome.runtime.onMessage.addListener((message, _sender, _sendResponse) => {
+chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   if (message.type === 'ARCHIVE_TAB' && message.tabId) {
-    archiveTab(message.tabId)
+    archiveTab(message.tabId).then(sendResponse)
+    return true
+  } else if (message.type === 'ARCHIVE_TABS_BATCH' && Array.isArray(message.tabIds)) {
+    archiveTabsBatch(message.tabIds, message.collection).then(sendResponse)
+    return true
   } else if (message.type === 'OPEN_SIDE_PANEL' && message.windowId) {
     chrome.sidePanel.open({ windowId: message.windowId })
   } else if (message.type === 'UPDATE_BADGE') {
     updateBadge()
+  } else if (message.type === 'GET_UNDO') {
+    chrome.storage.local.get(UNDO_KEY, (r) => sendResponse(r[UNDO_KEY] || null))
+    return true
   }
 })
 
