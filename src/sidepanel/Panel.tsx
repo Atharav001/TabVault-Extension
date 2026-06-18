@@ -27,14 +27,6 @@ function IconSnapshot() {
   )
 }
 
-function IconClose() {
-  return (
-    <svg className="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
-    </svg>
-  )
-}
-
 export default function Panel() {
   const items = useVaultStore((s) => s.items)
   const searchQuery = useVaultStore((s) => s.searchQuery)
@@ -189,21 +181,26 @@ export default function Panel() {
   const isLight = theme === 'light'
 
   const bg = isLight
-    ? 'bg-gradient-to-br from-zinc-50/95 via-white/90 to-zinc-100/90'
+    ? 'bg-gradient-to-br from-rose-50 via-purple-50/80 to-indigo-50/90'
     : 'bg-[#121212]'
-
   const text = isLight ? 'text-zinc-700' : 'text-zinc-100'
   const subtext = isLight ? 'text-zinc-400' : 'text-zinc-400'
-  const border = isLight ? 'border-zinc-200/50' : 'border-zinc-800/40'
+  const border = isLight ? 'border-white/20' : 'border-zinc-800/40'
   const headerBg = isLight
-    ? 'bg-gradient-to-b from-white/60 via-white/20 to-transparent'
+    ? 'bg-white/40 backdrop-blur-xl border-b border-white/10'
     : 'bg-gradient-to-b from-zinc-900/20 to-transparent'
-  const actionBtnLight = isLight
-    ? 'bg-white/50 backdrop-blur-xl border-zinc-200/50 text-zinc-500 hover:text-zinc-700 hover:bg-white/70 hover:border-zinc-300/60'
-    : 'text-zinc-600 hover:text-zinc-300 hover:bg-zinc-800/40 border-transparent hover:border-zinc-700/50'
   const barBg = isLight
-    ? 'bg-gradient-to-t from-white/60 via-white/30 to-transparent border-zinc-200/40'
+    ? 'bg-white/40 backdrop-blur-xl border-t border-white/10'
     : 'bg-gradient-to-t from-zinc-900/30 to-transparent'
+  const glassBtn = isLight
+    ? 'bg-white/50 backdrop-blur-sm border-white/20 text-zinc-500 hover:text-zinc-700 hover:bg-white/70 hover:border-zinc-200/50'
+    : 'text-zinc-600 hover:text-zinc-300 hover:bg-zinc-800/40 border-transparent hover:border-zinc-700/50'
+  const dropdownBg = isLight
+    ? 'bg-white/90 backdrop-blur-xl border-zinc-200/60'
+    : 'bg-zinc-900/95 border-zinc-700/60'
+  const dropdownItem = isLight
+    ? 'text-zinc-600 hover:bg-zinc-100/60'
+    : 'text-zinc-300 hover:bg-zinc-800/60'
 
   if (showSettings) {
     return (
@@ -224,7 +221,7 @@ export default function Panel() {
               <button
                 onClick={snapshotToday}
                 disabled={snapshotting}
-                className={`shrink-0 flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-[11px] font-medium transition-colors disabled:opacity-40 ${actionBtnLight} ${isLight ? 'bg-amber-50/60 text-amber-600 hover:text-amber-700 hover:bg-amber-100/60 border-amber-200/50' : 'bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 hover:text-amber-300 border-amber-500/20 hover:border-amber-500/40'}`}
+                className={`shrink-0 flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-[11px] font-medium transition-colors disabled:opacity-40 ${isLight ? 'bg-amber-50/60 backdrop-blur-sm text-amber-600 hover:text-amber-700 hover:bg-amber-100/60 border border-amber-200/50' : 'bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 hover:text-amber-300 border-amber-500/20 hover:border-amber-500/40'}`}
                 title="Snapshot all tabs in current window"
               >
                 <IconSnapshot />
@@ -233,7 +230,7 @@ export default function Panel() {
               <button
                 onClick={sendCurrentTab}
                 disabled={sendingTab}
-                className={`shrink-0 flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-[11px] font-medium transition-colors disabled:opacity-40 ${actionBtnLight} ${isLight ? 'bg-violet-50/60 text-violet-600 hover:text-violet-700 hover:bg-violet-100/60 border-violet-200/50' : 'bg-violet-500/10 hover:bg-violet-500/20 text-violet-400 hover:text-violet-300 border-violet-500/20 hover:border-violet-500/40'}`}
+                className={`shrink-0 flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-[11px] font-medium transition-colors disabled:opacity-40 ${isLight ? 'bg-violet-50/60 backdrop-blur-sm text-violet-600 hover:text-violet-700 hover:bg-violet-100/60 border border-violet-200/50' : 'bg-violet-500/10 hover:bg-violet-500/20 text-violet-400 hover:text-violet-300 border-violet-500/20 hover:border-violet-500/40'}`}
                 title="Send current tab to vault"
               >
                 <IconSend />
@@ -258,17 +255,17 @@ export default function Panel() {
               <div className="relative">
                 <button
                   onClick={() => setShowMoveMenu(!showMoveMenu)}
-                  className={`px-2.5 py-1.5 rounded-xl text-[11px] font-medium transition-colors ${isLight ? 'bg-amber-50/60 text-amber-600 hover:text-amber-700 hover:bg-amber-100/60 border border-amber-200/50' : 'bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 hover:text-amber-300 border border-amber-500/20 hover:border-amber-500/40'}`}
+                  className={`px-2.5 py-1.5 rounded-xl text-[11px] font-medium transition-colors ${isLight ? 'bg-amber-50/60 backdrop-blur-sm text-amber-600 hover:bg-amber-100/60 border border-amber-200/50' : 'bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 hover:text-amber-300 border border-amber-500/20 hover:border-amber-500/40'}`}
                 >
                   Move to
                 </button>
                 {showMoveMenu && (
-                  <div className={`absolute bottom-full mb-1 right-0 backdrop-blur-xl border rounded-xl py-1 shadow-xl max-h-48 overflow-y-auto min-w-[120px] ${isLight ? 'bg-white/90 border-zinc-200/60' : 'bg-zinc-900/95 border-zinc-700/60'}`}>
+                  <div className={`absolute bottom-full mb-1 right-0 backdrop-blur-xl border rounded-xl py-1 shadow-xl max-h-48 overflow-y-auto min-w-[120px] ${dropdownBg}`}>
                     {Object.keys(collections).map((name) => (
                       <button
                         key={name}
                         onClick={() => { bulkMoveToCollection(name); setShowMoveMenu(false) }}
-                        className={`w-full text-left px-3 py-1.5 text-xs transition-colors ${isLight ? 'text-zinc-600 hover:bg-zinc-100/60' : 'text-zinc-300 hover:bg-zinc-800/60'}`}
+                        className={`w-full text-left px-3 py-1.5 text-xs transition-colors ${dropdownItem}`}
                       >
                         {name}
                       </button>
@@ -278,13 +275,13 @@ export default function Panel() {
               </div>
               <button
                 onClick={bulkDelete}
-                className={`px-2.5 py-1.5 rounded-xl text-[11px] font-medium transition-colors ${isLight ? 'bg-red-50/60 text-red-600 hover:text-red-700 hover:bg-red-100/60 border border-red-200/50' : 'bg-red-500/10 hover:bg-red-500/20 text-red-400 hover:text-red-300 border border-red-500/20 hover:border-red-500/40'}`}
+                className={`px-2.5 py-1.5 rounded-xl text-[11px] font-medium transition-colors ${isLight ? 'bg-red-50/60 backdrop-blur-sm text-red-600 hover:bg-red-100/60 border border-red-200/50' : 'bg-red-500/10 hover:bg-red-500/20 text-red-400 hover:text-red-300 border border-red-500/20 hover:border-red-500/40'}`}
               >
                 Delete ({selectedIds.length})
               </button>
               <button
                 onClick={clearSelection}
-                className={`px-2.5 py-1.5 rounded-xl text-[11px] font-medium transition-colors ${isLight ? 'bg-white/60 text-zinc-500 hover:text-zinc-700 hover:bg-white/80 border border-zinc-200/50' : 'bg-zinc-800/30 hover:bg-zinc-800/50 text-zinc-400 hover:text-zinc-300 border border-zinc-800/50 hover:border-zinc-700/50'}`}
+                className={`px-2.5 py-1.5 rounded-xl text-[11px] font-medium transition-colors ${glassBtn} border`}
               >
                 Cancel
               </button>
@@ -308,13 +305,13 @@ export default function Panel() {
                 setRestoring(false)
               }}
               disabled={restoring || filtered.length === 0}
-              className={`w-full py-2 rounded-xl text-xs font-medium transition-colors disabled:opacity-30 ${isLight ? 'bg-emerald-50/60 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-100/60 border border-emerald-200/50 hover:border-emerald-300/60' : 'text-emerald-600 hover:text-emerald-300 hover:bg-zinc-800/40 border border-transparent hover:border-emerald-800/60'}`}
+              className={`w-full py-2 rounded-xl text-xs font-medium transition-colors disabled:opacity-30 ${isLight ? 'bg-emerald-50/60 backdrop-blur-sm text-emerald-600 hover:text-emerald-700 hover:bg-emerald-100/60 border border-emerald-200/50 hover:border-emerald-300/60' : 'text-emerald-600 hover:text-emerald-300 hover:bg-zinc-800/40 border border-transparent hover:border-emerald-800/60'}`}
             >
               {restoring ? 'Restoring...' : `Restore All (${filtered.length})`}
             </button>
             <button
               onClick={exportToMarkdown}
-              className={`w-full py-1.5 rounded-xl text-[11px] font-medium transition-colors ${isLight ? 'bg-white/50 text-zinc-500 hover:text-zinc-700 hover:bg-white/70 border border-zinc-200/50 hover:border-zinc-300/60' : 'text-zinc-600 hover:text-zinc-300 hover:bg-zinc-800/40 border border-transparent hover:border-zinc-800/60'}`}
+              className={`w-full py-1.5 rounded-xl text-[11px] font-medium transition-colors ${isLight ? 'bg-white/50 backdrop-blur-sm text-zinc-500 hover:text-zinc-700 hover:bg-white/70 border border-white/20 hover:border-zinc-200/50' : 'text-zinc-600 hover:text-zinc-300 hover:bg-zinc-800/40 border border-transparent hover:border-zinc-800/60'}`}
             >
               Export to Markdown
             </button>

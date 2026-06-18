@@ -2,6 +2,7 @@ import { useRef, useEffect, memo, useMemo } from 'react'
 import { useVirtualizer } from '@tanstack/react-virtual'
 import type { VaultItem as VaultItemType } from '../db/vaultDB'
 import { ListVaultItem, CardVaultItem } from './VaultItem'
+import { useVaultStore } from '../store/useVaultStore'
 
 type Row =
   | { type: 'header'; label: string; isSession: boolean }
@@ -56,6 +57,7 @@ function buildRows(items: VaultItemType[]): Row[] {
 function VirtualListInner({ items, viewMode }: { items: VaultItemType[]; viewMode: 'list' | 'card' }) {
   const scrollRef = useRef<HTMLDivElement>(null)
   const isCard = viewMode === 'card'
+  const isLight = useVaultStore((s) => s.theme) === 'light'
 
   const rows = useMemo(() => buildRows(items), [items])
 
@@ -100,11 +102,11 @@ function VirtualListInner({ items, viewMode }: { items: VaultItemType[]; viewMod
                   height: `${virtualRow.size}px`,
                   transform: `translateY(${virtualRow.start}px)`,
                 }}
-                className={`px-3 flex items-end pb-1 ${row.isSession ? 'font-bold text-purple-400' : 'font-semibold text-zinc-500'}`}
+                className={`px-3 flex items-end pb-1 ${row.isSession ? (isLight ? 'font-bold text-violet-600' : 'font-bold text-purple-400') : (isLight ? 'font-semibold text-zinc-400' : 'font-semibold text-zinc-500')}`}
               >
                 <span className="text-[11px] tracking-wide uppercase">{row.label}</span>
                 {row.isSession && (
-                  <span className="ml-2 text-[9px] text-purple-500/80 uppercase tracking-wider">Snapshot</span>
+                  <span className={`ml-2 text-[9px] uppercase tracking-wider ${isLight ? 'text-violet-500/80' : 'text-purple-500/80'}`}>Snapshot</span>
                 )}
               </div>
             )
