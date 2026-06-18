@@ -10,6 +10,7 @@ import VirtualList from './VirtualList'
 import EmptyState from './EmptyState'
 import SettingsView from './SettingsView'
 import Toast from './Toast'
+import ArchiveToast from './components/ArchiveToast'
 
 function IconSend() {
   return (
@@ -42,6 +43,8 @@ export default function Panel() {
   const theme = useVaultStore((s) => s.theme)
   const collections = useVaultStore((s) => s.collections)
   const showToast = useVaultStore((s) => s.showToast)
+  const pendingAutoArchive = useVaultStore((s) => s.pendingAutoArchive)
+  const setPendingAutoArchive = useVaultStore((s) => s.setPendingAutoArchive)
 
   const [showSettings, setShowSettings] = useState(false)
   const [restoring, setRestoring] = useState(false)
@@ -66,15 +69,37 @@ export default function Panel() {
   }, [theme])
 
   useEffect(() => {
-    function handler(e: MessageEvent) {
+    function postHandler(e: MessageEvent) {
       if (e.data?.type === 'TABS_ARCHIVED') {
         showToast(`Archived ${e.data.count} tabs`, e.data.ids)
         fetchItems()
+      } else if (e.data?.type === 'PENDING_AUTO_ARCHIVE') {
+        setPendingAutoArchive(e.data.tabs)
+      } else if (e.data?.type === 'PENDING_AUTO_ARCHIVE_REMOVE') {
+        const current = useVaultStore.getState().pendingAutoArchive
+        const updated = current.filter((t: { tabId: number }) => t.tabId !== e.data.tabId)
+        setPendingAutoArchive(updated)
       }
     }
-    window.addEventListener('message', handler)
-    return () => window.removeEventListener('message', handler)
-  }, [showToast, fetchItems])
+    function runtimeHandler(msg: Record<string, unknown>) {
+      if (msg.type === 'TABS_ARCHIVED') {
+        showToast(`Archived ${msg.count} tabs`, msg.ids as number[])
+        fetchItems()
+      } else if (msg.type === 'PENDING_AUTO_ARCHIVE') {
+        setPendingAutoArchive(msg.tabs as { tabId: number; title: string; url: string }[])
+      } else if (msg.type === 'PENDING_AUTO_ARCHIVE_REMOVE') {
+        const current = useVaultStore.getState().pendingAutoArchive
+        const updated = current.filter((t) => t.tabId !== (msg.tabId as number))
+        setPendingAutoArchive(updated)
+      }
+    }
+    window.addEventListener('message', postHandler)
+    chrome.runtime.onMessage.addListener(runtimeHandler)
+    return () => {
+      window.removeEventListener('message', postHandler)
+      chrome.runtime.onMessage.removeListener(runtimeHandler)
+    }
+  }, [showToast, fetchItems, setPendingAutoArchive])
 
   const filtered = useMemo(() => {
     let result = items
@@ -246,6 +271,8 @@ export default function Panel() {
             </div>
           </div>
         </div>
+
+        <ArchiveToast />
 
         <div className="flex-1 min-h-0">
           {filtered.length === 0 ? (

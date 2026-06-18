@@ -11,6 +11,12 @@ interface ToastState {
   undoIds: number[]
 }
 
+export interface PendingTab {
+  tabId: number
+  title: string
+  url: string
+}
+
 interface VaultStore {
   items: VaultItem[]
   collections: CollectionMap
@@ -22,6 +28,7 @@ interface VaultStore {
   selectedIds: number[]
   theme: 'dark' | 'light'
   toast: ToastState | null
+  pendingAutoArchive: PendingTab[]
 
   setSearchQuery: (query: string) => void
   setSelectedCollection: (collection: string | null) => void
@@ -40,6 +47,10 @@ interface VaultStore {
   showToast: (message: string, undoIds: number[]) => void
   clearToast: () => void
   undoArchive: () => Promise<void>
+  setPendingAutoArchive: (tabs: PendingTab[]) => void
+  clearPendingAutoArchive: () => void
+  archivePendingTabs: () => Promise<void>
+  snoozePendingTabs: () => Promise<void>
 }
 
 export const useVaultStore = create<VaultStore>((set, get) => ({
@@ -58,6 +69,7 @@ export const useVaultStore = create<VaultStore>((set, get) => ({
   selectedIds: [],
   theme: 'dark',
   toast: null,
+  pendingAutoArchive: [],
 
   setSearchQuery: (query) => set({ searchQuery: query }),
 
@@ -173,5 +185,29 @@ export const useVaultStore = create<VaultStore>((set, get) => ({
     set({ toast: null })
     chrome.runtime.sendMessage({ type: 'UPDATE_BADGE' })
     get().fetchItems()
+  },
+
+  setPendingAutoArchive: (tabs) => set({ pendingAutoArchive: tabs }),
+
+  clearPendingAutoArchive: () => set({ pendingAutoArchive: [] }),
+
+  archivePendingTabs: async () => {
+    const { pendingAutoArchive } = get()
+    if (pendingAutoArchive.length === 0) return
+    const tabIds = pendingAutoArchive.map(t => t.tabId)
+    const ids = await chrome.runtime.sendMessage({ type: 'ARCHIVE_PENDING', tabIds })
+    if (ids && ids.length > 0) {
+      get().showToast(`Archived ${ids.length} inactive tabs`, ids)
+      get().fetchItems()
+    }
+    set({ pendingAutoArchive: [] })
+  },
+
+  snoozePendingTabs: async () => {
+    const { pendingAutoArchive } = get()
+    if (pendingAutoArchive.length === 0) return
+    const tabIds = pendingAutoArchive.map(t => t.tabId)
+    await chrome.runtime.sendMessage({ type: 'SNOOZE_PENDING', tabIds })
+    set({ pendingAutoArchive: [] })
   },
 }))
