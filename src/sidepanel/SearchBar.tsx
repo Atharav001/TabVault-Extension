@@ -6,6 +6,8 @@ export default function SearchBar({ onToggleSettings }: { onToggleSettings: () =
   const setSearchQuery = useVaultStore((s) => s.setSearchQuery)
   const viewMode = useVaultStore((s) => s.viewMode)
   const setViewMode = useVaultStore((s) => s.setViewMode)
+  const cardColumns = useVaultStore((s) => s.cardColumns)
+  const setCardColumns = useVaultStore((s) => s.setCardColumns)
   const theme = useVaultStore((s) => s.theme)
   const isLight = theme === 'light'
 
@@ -150,6 +152,30 @@ export default function SearchBar({ onToggleSettings }: { onToggleSettings: () =
           </svg>
         </button>
       </div>
+
+      {viewMode === 'card' && (
+        <div className={`flex rounded-xl border overflow-hidden shrink-0 ${toggleBg}`}>
+          <button
+            onClick={() => setCardColumns('1')}
+            className={`px-1.5 py-1 text-[10px] font-semibold ${btnTransition} ${cardColumns === '1' ? activeCls : inactiveCls}`}
+            title="Single column"
+          >1</button>
+          <button
+            onClick={() => setCardColumns('2')}
+            className={`px-1.5 py-1 text-[10px] font-semibold ${btnTransition} ${cardColumns === '2' ? activeCls : inactiveCls}`}
+            title="Two columns"
+          >2</button>
+          <button
+            onClick={() => setCardColumns('auto')}
+            className={`px-1.5 py-1 text-[10px] font-semibold ${btnTransition} ${cardColumns === 'auto' ? activeCls : inactiveCls}`}
+            title="Auto columns"
+          >
+            <svg className="size-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9 4.5v15m6-15v15m-10.875 0h15.75c.621 0 1.125-.504 1.125-1.125V5.625c0-.621-.504-1.125-1.125-1.125H4.125C3.504 4.5 3 5.004 3 5.625v12.75c0 .621.504 1.125 1.125 1.125Z" />
+            </svg>
+          </button>
+        </div>
+      )}
 
       <button
         onClick={onToggleSettings}

@@ -1,8 +1,10 @@
-import { useRef, useEffect, memo, useMemo } from 'react'
+import { useRef, useEffect, memo, useMemo, useState } from 'react'
 import { useVirtualizer } from '@tanstack/react-virtual'
 import type { VaultItem as VaultItemType } from '../db/vaultDB'
 import { ListVaultItem, CardVaultItem } from './VaultItem'
 import { useVaultStore } from '../store/useVaultStore'
+
+const CARD_SIZE = 100
 
 type Row =
   | { type: 'header'; label: string; isSession: boolean }
@@ -58,6 +60,27 @@ function VirtualListInner({ items, viewMode }: { items: VaultItemType[]; viewMod
   const scrollRef = useRef<HTMLDivElement>(null)
   const isCard = viewMode === 'card'
   const isLight = useVaultStore((s) => s.theme) === 'light'
+  const cardColumns = useVaultStore((s) => s.cardColumns)
+
+  const [containerWidth, setContainerWidth] = useState(360)
+
+  useEffect(() => {
+    const el = scrollRef.current
+    if (!el) return
+    const ro = new ResizeObserver(([entry]) => {
+      setContainerWidth(entry.contentRect.width)
+    })
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [])
+
+  const columns = useMemo(() => {
+    if (!isCard) return 1
+    if (cardColumns !== 'auto') return Number(cardColumns)
+    const gap = 8
+    const available = containerWidth - 24
+    return Math.max(1, Math.floor((available + gap) / (CARD_SIZE + gap)))
+  }, [cardColumns, containerWidth, isCard])
 
   const rows = useMemo(() => buildRows(items), [items])
 
@@ -66,7 +89,7 @@ function VirtualListInner({ items, viewMode }: { items: VaultItemType[]; viewMod
       const row = rows[index]
       if (!row) return 54
       if (row.type === 'header') return 28
-      return isCard ? 108 : 54
+      return isCard ? CARD_SIZE + 8 : 54
     }
   }, [rows, isCard])
 
@@ -87,6 +110,20 @@ function VirtualListInner({ items, viewMode }: { items: VaultItemType[]; viewMod
     }
     return isLight ? 'font-semibold text-zinc-400' : 'font-semibold text-zinc-500'
   }
+
+  const itemRows = useMemo(() => {
+    if (!isCard) return []
+    return rows.filter((r): r is { type: 'item'; item: VaultItemType } => r.type === 'item')
+  }, [rows, isCard])
+
+  const cardGroups = useMemo(() => {
+    if (!isCard) return []
+    const groups: { items: VaultItemType[] }[] = []
+    for (let i = 0; i < itemRows.length; i += columns) {
+      groups.push({ items: itemRows.slice(i, i + columns).map(r => r.item) })
+    }
+    return groups
+  }, [itemRows, columns, isCard])
 
   return (
     <div ref={scrollRef} className="h-full overflow-y-auto px-3">
@@ -140,29 +177,17 @@ function VirtualListInner({ items, viewMode }: { items: VaultItemType[]; viewMod
         })}
 
         {isCard && (() => {
-          const itemRows = rows.filter(r => r.type === 'item')
-          const cardPairs: { items: VaultItemType[]; start: number }[] = []
-          for (let i = 0; i < itemRows.length; i += 2) {
-            const a = itemRows[i] as { type: 'item'; item: VaultItemType } | undefined
-            const b = itemRows[i + 1] as { type: 'item'; item: VaultItemType } | undefined
-            if (!a) continue
-            cardPairs.push({
-              items: [a.item, b?.item].filter(Boolean) as VaultItemType[],
-              start: 0,
-            })
-          }
-
-          let pairIdx = 0
+          let groupIdx = 0
           return virtualizer.getVirtualItems().map((virtualRow) => {
             const row = rows[virtualRow.index]
             if (!row || row.type === 'header') return null
 
-            const pair = cardPairs[pairIdx++]
-            if (!pair) return null
+            const group = cardGroups[groupIdx++]
+            if (!group) return null
 
             return (
               <div
-                key={`p-${pairIdx}`}
+                key={`g-${groupIdx}`}
                 style={{
                   position: 'absolute',
                   top: 0,
@@ -173,12 +198,14 @@ function VirtualListInner({ items, viewMode }: { items: VaultItemType[]; viewMod
                 }}
               >
                 <div className="flex gap-1.5 px-0 py-1 h-full">
-                  {pair.items.map((item) => (
+                  {group.items.map((item) => (
                     <div key={item.id} className="flex-1 min-w-0">
                       <CardVaultItem item={item} />
                     </div>
                   ))}
-                  {pair.items.length === 1 && <div className="flex-1" />}
+                  {group.items.length < columns && Array.from({ length: columns - group.items.length }).map((_, i) => (
+                    <div key={`f-${i}`} className="flex-1" />
+                  ))}
                 </div>
               </div>
             )

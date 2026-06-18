@@ -40,6 +40,7 @@ export default function Panel() {
   const clearSelection = useVaultStore((s) => s.clearSelection)
   const bulkDelete = useVaultStore((s) => s.bulkDelete)
   const bulkMoveToCollection = useVaultStore((s) => s.bulkMoveToCollection)
+  const bulkOpenSelected = useVaultStore((s) => s.bulkOpenSelected)
   const theme = useVaultStore((s) => s.theme)
   const collections = useVaultStore((s) => s.collections)
   const showToast = useVaultStore((s) => s.showToast)
@@ -309,6 +310,12 @@ export default function Panel() {
                   </div>
                 )}
               </div>
+              <button
+                onClick={bulkOpenSelected}
+                className={`px-3 py-1.5 rounded-full text-[11px] font-medium border shadow-sm ${btnHover} ${isLight ? 'bg-white text-emerald-600 hover:bg-emerald-50 hover:shadow-md border-emerald-200/50' : 'bg-zinc-900 text-emerald-400 hover:bg-emerald-950/30 hover:shadow-md border-emerald-900/50'}`}
+              >
+                Open ({selectedIds.length})
+              </button>
               <button
                 onClick={bulkDelete}
                 className={`px-3 py-1.5 rounded-full text-[11px] font-medium border shadow-sm ${btnHover} ${isLight ? 'bg-white text-red-600 hover:bg-red-50 hover:shadow-md border-red-200/50' : 'bg-zinc-900 text-red-400 hover:bg-red-950/50 hover:shadow-md border-red-900/50'}`}

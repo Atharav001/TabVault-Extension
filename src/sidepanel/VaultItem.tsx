@@ -2,8 +2,18 @@ import { useDraggable } from '@dnd-kit/core'
 import { CSS } from '@dnd-kit/utilities'
 import { memo, useState } from 'react'
 import type { VaultItem as VaultItemType } from '../db/vaultDB'
+import { vaultDB } from '../db/vaultDB'
 import { useVaultStore } from '../store/useVaultStore'
 import { restoreTab } from '../lib/restore'
+
+async function openItem(item: VaultItemType, keepInVault: boolean) {
+  await chrome.tabs.create({ url: item.url, active: true })
+  if (!keepInVault && item.id) {
+    await vaultDB.vault_items.delete(item.id)
+    useVaultStore.getState().fetchItems()
+    chrome.runtime.sendMessage({ type: 'UPDATE_BADGE' })
+  }
+}
 
 function daysAgo(ts: number): string {
   const days = Math.floor((Date.now() - ts) / 86400000)
@@ -149,7 +159,7 @@ function ListItem({ item, style }: { item: VaultItemType; style?: React.CSSPrope
         <Checkbox checked={isSelected} onToggle={() => item.id && toggleSelect(item.id)} />
       </div>
       <Favicon item={item} />
-      <div className="flex-1 min-w-0">
+      <div className="flex-1 min-w-0 cursor-pointer" onPointerDown={(e) => e.stopPropagation()} onClick={(e) => openItem(item, e.metaKey || e.ctrlKey)}>
         <span className={`text-sm font-medium leading-snug line-clamp-2 ${textCls}`}>{item.title || 'Untitled'}</span>
       </div>
       <div className="flex items-center gap-1 shrink-0">
@@ -174,6 +184,27 @@ function ListItem({ item, style }: { item: VaultItemType; style?: React.CSSPrope
         </button>
       </div>
     </div>
+  )
+}
+
+function FaviconBig({ item }: { item: VaultItemType }) {
+  const [broken, setBroken] = useState(false)
+  if (broken || !item.favicon) {
+    const letter = (item.title || '?').charAt(0).toUpperCase()
+    const pastel = hashColor(item.title || '?')
+    return (
+      <div className={`size-7 rounded-lg flex items-center justify-center text-xs font-bold ${pastel}`}>
+        {letter}
+      </div>
+    )
+  }
+  return (
+    <img
+      src={item.favicon}
+      alt=""
+      className="size-7 rounded-lg"
+      onError={() => setBroken(true)}
+    />
   )
 }
 
@@ -211,45 +242,36 @@ function CardItem({ item }: { item: VaultItemType }) {
       {...listeners}
       {...attributes}
       style={dragStyle}
-      onClick={() => { if (item.id && !isDragging) restoreTab(item.id) }}
       className={`
-        flex flex-col rounded-lg border p-2.5 cursor-grab active:cursor-grabbing h-full
+        relative flex flex-col items-center justify-center gap-1.5
+        aspect-square rounded-lg border p-2 cursor-grab active:cursor-grabbing
         transition-all
         ${cardCls}
         ${isSelected ? selectedCls : ''}
         ${!isSelected && !isDragging ? hoverCls : ''}
       `}
     >
-      <div className="flex items-start justify-between gap-1 mb-1.5">
-        <div className="flex items-center gap-1.5 min-w-0">
-          <div onClick={(e) => e.stopPropagation()}>
-            <Checkbox checked={isSelected} onToggle={() => item.id && toggleSelect(item.id)} />
-          </div>
-          <FaviconCard item={item} />
-          <span className={`text-xs font-semibold leading-tight line-clamp-2 ${textCls}`}>{item.title || 'Untitled'}</span>
-        </div>
-        <button
-          onClick={(e) => { e.stopPropagation(); if (item.id) deleteItem(item.id) }}
-          className="p-0.5 rounded text-zinc-400 hover:text-red-500 transition-all duration-200 hover:scale-110 active:scale-90 shrink-0"
-          title="Delete"
-        >
-          <svg className="size-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
-          </svg>
-        </button>
+      <div className="absolute top-1.5 left-1.5" onClick={(e) => e.stopPropagation()}>
+        <Checkbox checked={isSelected} onToggle={() => item.id && toggleSelect(item.id)} />
       </div>
-
-      {item.textPreview && (
-        <p className="text-[10px] text-zinc-400 leading-relaxed line-clamp-2 mb-1.5 flex-1">
-          {item.textPreview.slice(0, 100)}
-        </p>
-      )}
-
-      <div className="flex items-center justify-between mt-auto">
-        <span className={`text-[9px] px-1.5 py-0.5 rounded-md font-medium ${isLight ? 'bg-zinc-100 text-zinc-500' : 'bg-zinc-800 text-zinc-400'}`}>
-          {item.collection || 'uncategorized'}
+      <button
+        onClick={(e) => { e.stopPropagation(); if (item.id) deleteItem(item.id) }}
+        className="absolute top-1.5 right-1.5 p-0.5 rounded text-zinc-400 hover:text-red-500 transition-all duration-200 hover:scale-110 active:scale-90"
+        title="Delete"
+      >
+        <svg className="size-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
+        </svg>
+      </button>
+      <div
+        className="flex flex-col items-center gap-1 cursor-pointer"
+        onPointerDown={(e) => e.stopPropagation()}
+        onClick={(e) => openItem(item, e.metaKey || e.ctrlKey)}
+      >
+        <FaviconBig item={item} />
+        <span className={`text-[10px] font-medium text-center leading-tight line-clamp-2 px-0.5 ${textCls}`}>
+          {item.title || 'Untitled'}
         </span>
-        <span className="text-[9px] text-zinc-500">{daysAgo(item.createdAt)}</span>
       </div>
     </div>
   )

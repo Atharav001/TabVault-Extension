@@ -24,6 +24,7 @@ interface VaultStore {
   searchQuery: string
   selectedCollection: string | null
   viewMode: 'list' | 'card'
+  cardColumns: 'auto' | '1' | '2'
   isLoading: boolean
   selectedIds: number[]
   theme: 'dark' | 'light'
@@ -33,6 +34,7 @@ interface VaultStore {
   setSearchQuery: (query: string) => void
   setSelectedCollection: (collection: string | null) => void
   setViewMode: (mode: 'list' | 'card') => void
+  setCardColumns: (mode: 'auto' | '1' | '2') => void
   fetchItems: () => Promise<void>
   deleteItem: (id: number) => Promise<void>
   moveToCollection: (itemId: number, collection: string) => Promise<void>
@@ -43,6 +45,7 @@ interface VaultStore {
   clearSelection: () => void
   bulkDelete: () => Promise<void>
   bulkMoveToCollection: (collection: string) => Promise<void>
+  bulkOpenSelected: () => Promise<void>
   setTheme: (theme: 'dark' | 'light') => void
   showToast: (message: string, undoIds: number[]) => void
   clearToast: () => void
@@ -65,6 +68,7 @@ export const useVaultStore = create<VaultStore>((set, get) => ({
   searchQuery: '',
   selectedCollection: null,
   viewMode: 'list',
+  cardColumns: 'auto',
   isLoading: false,
   selectedIds: [],
   theme: 'dark',
@@ -76,6 +80,7 @@ export const useVaultStore = create<VaultStore>((set, get) => ({
   setSelectedCollection: (collection) => set({ selectedCollection: collection, selectedIds: [] }),
 
   setViewMode: (mode) => set({ viewMode: mode }),
+  setCardColumns: (mode) => set({ cardColumns: mode }),
 
   fetchItems: async () => {
     set({ isLoading: true })
@@ -162,6 +167,18 @@ export const useVaultStore = create<VaultStore>((set, get) => ({
       i.id && selectedIds.includes(i.id) ? { ...i, collection } : i,
     )
     set({ items, selectedIds: [] })
+  },
+
+  bulkOpenSelected: async () => {
+    const { selectedIds, items } = get()
+    const selected = items.filter(i => i.id && selectedIds.includes(i.id))
+    for (const item of selected) {
+      if (item.id) await restoreTab(item.id)
+    }
+    await vaultDB.vault_items.bulkDelete(selectedIds)
+    set({ selectedIds: [] })
+    chrome.runtime.sendMessage({ type: 'UPDATE_BADGE' })
+    get().fetchItems()
   },
 
   setTheme: (theme) => set({ theme }),
