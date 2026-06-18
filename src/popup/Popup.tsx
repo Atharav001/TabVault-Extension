@@ -139,10 +139,10 @@ export default function Popup() {
   }
 
   const baseBtn =
-    'w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm font-medium transition-all border backdrop-blur-sm'
+    'w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm font-medium transition-all border'
 
   return (
-    <div className="flex flex-col gap-1.5 p-2.5 bg-[#121212] text-zinc-100">
+    <div className="flex flex-col gap-1.5 p-2.5 bg-zinc-950 text-zinc-100">
       <div className="flex items-center justify-between px-1 pb-1.5">
         <div className="flex items-center gap-2">
           <div className={`size-2 rounded-full shadow-sm ${enabled ? 'bg-emerald-500 shadow-emerald-500/30' : 'bg-zinc-600'}`} />
@@ -212,7 +212,7 @@ export default function Popup() {
       </button>
 
       {status && (
-        <div className="text-[11px] text-zinc-500 text-center pt-0.5 pb-1 backdrop-blur-sm">{status}</div>
+        <div className="text-[11px] text-zinc-500 text-center pt-0.5 pb-1">{status}</div>
       )}
     </div>
   )

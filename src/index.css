@@ -1,5 +1,14 @@
 @import "tailwindcss";
 
+html {
+  background-color: #09090b;
+  color: #f4f4f5;
+}
+html.light {
+  background-color: #f4f4f5;
+  color: #27272a;
+}
+
 .scrollbar-none {
   scrollbar-width: none;
   -ms-overflow-style: none;

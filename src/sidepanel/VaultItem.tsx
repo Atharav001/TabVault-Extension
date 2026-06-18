@@ -12,24 +12,42 @@ function daysAgo(ts: number): string {
   return `${days} days ago`
 }
 
+const PASTELS = [
+  'bg-red-200 text-red-700',
+  'bg-orange-200 text-orange-700',
+  'bg-amber-200 text-amber-700',
+  'bg-yellow-200 text-yellow-700',
+  'bg-lime-200 text-lime-700',
+  'bg-green-200 text-green-700',
+  'bg-emerald-200 text-emerald-700',
+  'bg-teal-200 text-teal-700',
+  'bg-cyan-200 text-cyan-700',
+  'bg-sky-200 text-sky-700',
+  'bg-blue-200 text-blue-700',
+  'bg-indigo-200 text-indigo-700',
+  'bg-violet-200 text-violet-700',
+  'bg-purple-200 text-purple-700',
+  'bg-fuchsia-200 text-fuchsia-700',
+  'bg-pink-200 text-pink-700',
+  'bg-rose-200 text-rose-700',
+]
+
 function hashColor(str: string): string {
   let hash = 0
   for (let i = 0; i < str.length; i++) {
     hash = str.charCodeAt(i) + ((hash << 5) - hash)
   }
-  const colors = ['#7C3AED', '#3B82F6', '#F59E0B', '#10B981', '#EC4899', '#EF4444', '#8B5CF6', '#06B6D4']
-  return colors[Math.abs(hash) % colors.length]
+  return PASTELS[Math.abs(hash) % PASTELS.length]
 }
 
 function Favicon({ item }: { item: VaultItemType }) {
   const [broken, setBroken] = useState(false)
   if (broken || !item.favicon) {
     const letter = (item.title || '?').charAt(0).toUpperCase()
-    const bg = hashColor(item.title || '?')
+    const pastel = hashColor(item.title || '?')
     return (
       <div
-        className="size-4 rounded shrink-0 flex items-center justify-center text-[9px] font-bold text-white"
-        style={{ backgroundColor: bg }}
+        className={`size-4 rounded shrink-0 flex items-center justify-center text-[9px] font-bold ${pastel}`}
       >
         {letter}
       </div>
@@ -49,11 +67,10 @@ function FaviconCard({ item }: { item: VaultItemType }) {
   const [broken, setBroken] = useState(false)
   if (broken || !item.favicon) {
     const letter = (item.title || '?').charAt(0).toUpperCase()
-    const bg = hashColor(item.title || '?')
+    const pastel = hashColor(item.title || '?')
     return (
       <div
-        className="size-3.5 rounded shrink-0 flex items-center justify-center text-[8px] font-bold text-white"
-        style={{ backgroundColor: bg }}
+        className={`size-3.5 rounded shrink-0 flex items-center justify-center text-[8px] font-bold ${pastel}`}
       >
         {letter}
       </div>
@@ -75,7 +92,7 @@ function Checkbox({ checked, onToggle }: { checked: boolean; onToggle: () => voi
   return (
     <button
       onClick={(e) => { e.stopPropagation(); onToggle() }}
-      className={`shrink-0 size-4 rounded border flex items-center justify-center transition-colors ${checked ? 'bg-violet-500 border-violet-500' : borderCls}`}
+      className={`shrink-0 size-4 rounded border flex items-center justify-center transition-colors ${checked ? 'bg-indigo-500 border-indigo-500' : borderCls}`}
     >
       {checked && (
         <svg className="size-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
@@ -104,15 +121,15 @@ function ListItem({ item, style }: { item: VaultItemType; style?: React.CSSPrope
   const isSelected = item.id ? selectedIds.includes(item.id) : false
 
   const cardCls = isLight
-    ? 'bg-white/50 backdrop-blur-xl border-white/30'
-    : 'bg-zinc-900/60 backdrop-blur-xl border-zinc-800/60'
+    ? 'bg-white border-zinc-200'
+    : 'bg-zinc-900 border-zinc-800'
   const hoverCls = isLight
-    ? 'hover:bg-white/70 hover:border-zinc-200/50'
-    : 'hover:bg-zinc-800/40 hover:border-zinc-700/60'
+    ? 'hover:shadow-sm hover:bg-zinc-50'
+    : 'hover:bg-zinc-800/50'
   const selectedCls = isLight
-    ? 'border-violet-300/60 bg-violet-50/60'
-    : 'border-violet-500/40 bg-zinc-800/50'
-  const textCls = isLight ? 'text-zinc-700' : 'text-zinc-200'
+    ? 'border-indigo-400/60 bg-indigo-50/60 shadow-sm'
+    : 'border-indigo-500/40 bg-zinc-800/50'
+  const textCls = isLight ? 'text-zinc-800' : 'text-zinc-100'
 
   return (
     <div
@@ -121,12 +138,11 @@ function ListItem({ item, style }: { item: VaultItemType; style?: React.CSSPrope
       {...attributes}
       style={{ ...style, ...dragStyle }}
       className={`
-        flex items-start gap-2.5 px-3 py-2.5 rounded-xl cursor-grab active:cursor-grabbing
-        transition-all border shadow-sm
+        flex items-start gap-2.5 px-3 py-2.5 rounded-lg cursor-grab active:cursor-grabbing
+        transition-all border
         ${cardCls}
         ${isSelected ? selectedCls : ''}
         ${!isSelected && !isDragging ? hoverCls : ''}
-        ${isLight && !isSelected ? 'shadow-zinc-200/20' : ''}
       `}
     >
       <div className="mt-0.5" onClick={(e) => e.stopPropagation()}>
@@ -140,7 +156,7 @@ function ListItem({ item, style }: { item: VaultItemType; style?: React.CSSPrope
         <span className="text-[10px] text-zinc-500 mt-0.5">{daysAgo(item.createdAt)}</span>
         <button
           onClick={(e) => { e.stopPropagation(); if (item.id) restoreTab(item.id) }}
-          className="p-1 rounded-md text-zinc-400 hover:text-blue-500 hover:bg-blue-100/50 transition-colors"
+          className="p-1 rounded-md text-zinc-400 hover:text-indigo-500 hover:bg-indigo-100/50 transition-all duration-200 hover:scale-110 active:scale-90"
           title="Restore"
         >
           <svg className="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -149,7 +165,7 @@ function ListItem({ item, style }: { item: VaultItemType; style?: React.CSSPrope
         </button>
         <button
           onClick={(e) => { e.stopPropagation(); if (item.id) deleteItem(item.id) }}
-          className="p-1 rounded-md text-zinc-400 hover:text-red-500 hover:bg-red-100/50 transition-colors"
+          className="p-1 rounded-md text-zinc-400 hover:text-red-500 hover:bg-red-100/50 transition-all duration-200 hover:scale-110 active:scale-90"
           title="Delete"
         >
           <svg className="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
@@ -179,15 +195,15 @@ function CardItem({ item }: { item: VaultItemType }) {
   const isSelected = item.id ? selectedIds.includes(item.id) : false
 
   const cardCls = isLight
-    ? 'bg-white/50 backdrop-blur-xl border-white/30'
-    : 'bg-zinc-900/60 backdrop-blur-xl border-zinc-800/60'
+    ? 'bg-white border-zinc-200'
+    : 'bg-zinc-900 border-zinc-800'
   const hoverCls = isLight
-    ? 'hover:bg-white/70 hover:border-zinc-200/50'
-    : 'hover:bg-zinc-800/40 hover:border-zinc-700/60'
+    ? 'hover:shadow-sm hover:bg-zinc-50'
+    : 'hover:bg-zinc-800/50'
   const selectedCls = isLight
-    ? 'border-violet-300/60 bg-violet-50/60'
-    : 'border-violet-500/40 bg-zinc-800/50'
-  const textCls = isLight ? 'text-zinc-700' : 'text-zinc-200'
+    ? 'border-indigo-400/60 bg-indigo-50/60 shadow-sm'
+    : 'border-indigo-500/40 bg-zinc-800/50'
+  const textCls = isLight ? 'text-zinc-800' : 'text-zinc-100'
 
   return (
     <div
@@ -197,12 +213,11 @@ function CardItem({ item }: { item: VaultItemType }) {
       style={dragStyle}
       onClick={() => { if (item.id && !isDragging) restoreTab(item.id) }}
       className={`
-        flex flex-col rounded-xl border p-2.5 cursor-grab active:cursor-grabbing h-full
-        transition-all shadow-sm
+        flex flex-col rounded-lg border p-2.5 cursor-grab active:cursor-grabbing h-full
+        transition-all
         ${cardCls}
         ${isSelected ? selectedCls : ''}
         ${!isSelected && !isDragging ? hoverCls : ''}
-        ${isLight && !isSelected ? 'shadow-zinc-200/20' : ''}
       `}
     >
       <div className="flex items-start justify-between gap-1 mb-1.5">
@@ -215,7 +230,7 @@ function CardItem({ item }: { item: VaultItemType }) {
         </div>
         <button
           onClick={(e) => { e.stopPropagation(); if (item.id) deleteItem(item.id) }}
-          className="p-0.5 rounded text-zinc-400 hover:text-red-500 transition-colors shrink-0"
+          className="p-0.5 rounded text-zinc-400 hover:text-red-500 transition-all duration-200 hover:scale-110 active:scale-90 shrink-0"
           title="Delete"
         >
           <svg className="size-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
@@ -231,7 +246,7 @@ function CardItem({ item }: { item: VaultItemType }) {
       )}
 
       <div className="flex items-center justify-between mt-auto">
-        <span className={`text-[9px] px-1.5 py-0.5 rounded-md font-medium backdrop-blur-sm ${isLight ? 'bg-zinc-100/60 text-zinc-400' : 'bg-zinc-800/60 text-zinc-500'}`}>
+        <span className={`text-[9px] px-1.5 py-0.5 rounded-md font-medium ${isLight ? 'bg-zinc-100 text-zinc-500' : 'bg-zinc-800 text-zinc-400'}`}>
           {item.collection || 'uncategorized'}
         </span>
         <span className="text-[9px] text-zinc-500">{daysAgo(item.createdAt)}</span>

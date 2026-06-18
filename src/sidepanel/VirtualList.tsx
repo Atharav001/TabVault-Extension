@@ -81,8 +81,15 @@ function VirtualListInner({ items, viewMode }: { items: VaultItemType[]; viewMod
     virtualizer.measure()
   })
 
+  const headerCls = (row: { type: 'header'; label: string; isSession: boolean }) => {
+    if (row.isSession) {
+      return isLight ? 'font-bold text-indigo-600' : 'font-bold text-indigo-400'
+    }
+    return isLight ? 'font-semibold text-zinc-400' : 'font-semibold text-zinc-500'
+  }
+
   return (
-    <div ref={scrollRef} className="flex-1 overflow-y-auto">
+    <div ref={scrollRef} className="h-full overflow-y-auto px-3">
       <div
         style={{ height: `${virtualizer.getTotalSize()}px`, position: 'relative' }}
       >
@@ -102,11 +109,11 @@ function VirtualListInner({ items, viewMode }: { items: VaultItemType[]; viewMod
                   height: `${virtualRow.size}px`,
                   transform: `translateY(${virtualRow.start}px)`,
                 }}
-                className={`px-3 flex items-end pb-1 ${row.isSession ? (isLight ? 'font-bold text-violet-600' : 'font-bold text-purple-400') : (isLight ? 'font-semibold text-zinc-400' : 'font-semibold text-zinc-500')}`}
+                className={`px-0 flex items-end pb-1 ${headerCls(row)}`}
               >
                 <span className="text-[11px] tracking-wide uppercase">{row.label}</span>
                 {row.isSession && (
-                  <span className={`ml-2 text-[9px] uppercase tracking-wider ${isLight ? 'text-violet-500/80' : 'text-purple-500/80'}`}>Snapshot</span>
+                  <span className={`ml-2 text-[9px] uppercase tracking-wider ${isLight ? 'text-indigo-500/80' : 'text-indigo-400/80'}`}>Snapshot</span>
                 )}
               </div>
             )
@@ -165,7 +172,7 @@ function VirtualListInner({ items, viewMode }: { items: VaultItemType[]; viewMod
                   transform: `translateY(${virtualRow.start}px)`,
                 }}
               >
-                <div className="flex gap-1.5 px-3 py-1 h-full">
+                <div className="flex gap-1.5 px-0 py-1 h-full">
                   {pair.items.map((item) => (
                     <div key={item.id} className="flex-1 min-w-0">
                       <CardVaultItem item={item} />

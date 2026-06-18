@@ -180,31 +180,34 @@ export default function Panel() {
 
   const isLight = theme === 'light'
 
-  const bg = isLight
-    ? 'bg-gradient-to-br from-rose-50 via-purple-50/80 to-indigo-50/90'
-    : 'bg-[#121212]'
-  const text = isLight ? 'text-zinc-700' : 'text-zinc-100'
-  const subtext = isLight ? 'text-zinc-400' : 'text-zinc-400'
-  const border = isLight ? 'border-white/20' : 'border-zinc-800/40'
   const headerBg = isLight
-    ? 'bg-white/40 backdrop-blur-xl border-b border-white/10'
-    : 'bg-gradient-to-b from-zinc-900/20 to-transparent'
+    ? 'bg-zinc-100/80 backdrop-blur-md border-b border-zinc-200/50'
+    : 'bg-zinc-950/80 backdrop-blur-md border-b border-zinc-800/40'
   const barBg = isLight
-    ? 'bg-white/40 backdrop-blur-xl border-t border-white/10'
-    : 'bg-gradient-to-t from-zinc-900/30 to-transparent'
-  const glassBtn = isLight
-    ? 'bg-white/50 backdrop-blur-sm border-white/20 text-zinc-500 hover:text-zinc-700 hover:bg-white/70 hover:border-zinc-200/50'
-    : 'text-zinc-600 hover:text-zinc-300 hover:bg-zinc-800/40 border-transparent hover:border-zinc-700/50'
+    ? 'bg-zinc-100/80 backdrop-blur-md border-t border-zinc-200/50'
+    : 'bg-zinc-950/80 backdrop-blur-md border-t border-zinc-800/40'
+  const text = isLight ? 'text-zinc-800' : 'text-zinc-100'
+  const subtext = isLight ? 'text-zinc-500' : 'text-zinc-400'
+  const border = isLight ? 'border-zinc-200/50' : 'border-zinc-800/40'
+
+  const btnHover = 'transition-all duration-200 hover:scale-105 active:scale-95'
+
+  const primaryBtn = isLight
+    ? `bg-zinc-900 text-white hover:bg-zinc-800 border-zinc-900 shadow-sm ${btnHover}`
+    : `bg-zinc-100 text-black hover:bg-zinc-200 border-zinc-100 shadow-sm ${btnHover}`
+  const secondaryBtn = isLight
+    ? `bg-white text-zinc-600 hover:text-zinc-800 hover:bg-zinc-50 border-zinc-200 shadow-sm ${btnHover}`
+    : `bg-zinc-900 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800 border-zinc-800 shadow-sm ${btnHover}`
   const dropdownBg = isLight
-    ? 'bg-white/90 backdrop-blur-xl border-zinc-200/60'
-    : 'bg-zinc-900/95 border-zinc-700/60'
+    ? 'bg-white/95 backdrop-blur-xl border-zinc-200 shadow-lg'
+    : 'bg-zinc-900/95 backdrop-blur-xl border-zinc-700 shadow-lg'
   const dropdownItem = isLight
-    ? 'text-zinc-600 hover:bg-zinc-100/60'
-    : 'text-zinc-300 hover:bg-zinc-800/60'
+    ? 'text-zinc-600 hover:bg-zinc-100'
+    : 'text-zinc-300 hover:bg-zinc-800'
 
   if (showSettings) {
     return (
-      <div className={`flex flex-col h-screen ${bg} ${text} overflow-hidden`}>
+      <div className={`flex flex-col h-screen text-zinc-100 overflow-hidden ${isLight ? 'text-zinc-800' : 'text-zinc-100'}`}>
         <SettingsView onBack={() => setShowSettings(false)} />
       </div>
     )
@@ -212,42 +215,48 @@ export default function Panel() {
 
   return (
     <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
-      <div className={`flex flex-col h-screen ${bg} ${text} overflow-hidden relative`}>
-        <div className={`relative ${headerBg}`}>
+      <div className={`flex flex-col h-screen overflow-hidden relative ${isLight ? 'text-zinc-800' : 'text-zinc-100'}`}>
+        <div className={`sticky top-0 z-10 ${headerBg}`}>
           <SearchBar onToggleSettings={() => setShowSettings(true)} />
-          <div className="flex items-center justify-between px-3 pb-1">
-            <Collections />
-            <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-2 px-3 pb-1.5">
+            <div className="flex-1 min-w-0">
+              <Collections />
+            </div>
+            <div className="flex items-center gap-1.5 shrink-0">
               <button
                 onClick={snapshotToday}
                 disabled={snapshotting}
-                className={`shrink-0 flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-[11px] font-medium transition-colors disabled:opacity-40 ${isLight ? 'bg-amber-50/60 backdrop-blur-sm text-amber-600 hover:text-amber-700 hover:bg-amber-100/60 border border-amber-200/50' : 'bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 hover:text-amber-300 border-amber-500/20 hover:border-amber-500/40'}`}
+                className={`shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-medium border shadow-sm ${btnHover} disabled:opacity-40 ${isLight ? 'bg-white text-amber-600 hover:bg-amber-50 hover:shadow-md border-zinc-200' : 'bg-zinc-900 text-amber-400 hover:bg-amber-950/30 hover:shadow-md border-zinc-800'}`}
                 title="Snapshot all tabs in current window"
               >
                 <IconSnapshot />
-                {snapshotting ? 'Snap...' : 'Snapshot Today'}
+                <span className="hidden min-[420px]:inline">{snapshotting ? 'Snap...' : 'Snapshot Today'}</span>
+                <span className="inline min-[420px]:hidden">{snapshotting ? 'Snap...' : 'Snap'}</span>
               </button>
               <button
                 onClick={sendCurrentTab}
                 disabled={sendingTab}
-                className={`shrink-0 flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-[11px] font-medium transition-colors disabled:opacity-40 ${isLight ? 'bg-violet-50/60 backdrop-blur-sm text-violet-600 hover:text-violet-700 hover:bg-violet-100/60 border border-violet-200/50' : 'bg-violet-500/10 hover:bg-violet-500/20 text-violet-400 hover:text-violet-300 border-violet-500/20 hover:border-violet-500/40'}`}
+                className={`shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-medium border shadow-sm ${btnHover} disabled:opacity-40 ${isLight ? 'bg-white text-indigo-600 hover:bg-indigo-50 hover:shadow-md border-zinc-200' : 'bg-zinc-900 text-indigo-400 hover:bg-indigo-950/30 hover:shadow-md border-zinc-800'}`}
                 title="Send current tab to vault"
               >
                 <IconSend />
-                {sendingTab ? 'Sent' : 'Current Tab'}
+                <span className="hidden min-[420px]:inline">{sendingTab ? 'Sent' : 'Current Tab'}</span>
+                <span className="inline min-[420px]:hidden">Tab</span>
               </button>
             </div>
           </div>
         </div>
 
-        {filtered.length === 0 ? (
-          <EmptyState hasFilter={hasFilter} />
-        ) : (
-          <VirtualList items={filtered} viewMode={viewMode} />
-        )}
+        <div className="flex-1 min-h-0">
+          {filtered.length === 0 ? (
+            <EmptyState hasFilter={hasFilter} />
+          ) : (
+            <VirtualList items={filtered} viewMode={viewMode} />
+          )}
+        </div>
 
         {selectedIds.length > 0 ? (
-          <div className={`shrink-0 border-t ${border} px-3 py-2.5 ${barBg}`}>
+          <div className={`shrink-0 sticky bottom-0 z-10 border-t ${border} px-4 py-3 ${barBg}`}>
             <div className="flex items-center gap-2">
               <span className={`text-xs font-medium ${subtext} mr-auto`}>
                 {selectedIds.length} selected
@@ -255,12 +264,12 @@ export default function Panel() {
               <div className="relative">
                 <button
                   onClick={() => setShowMoveMenu(!showMoveMenu)}
-                  className={`px-2.5 py-1.5 rounded-xl text-[11px] font-medium transition-colors ${isLight ? 'bg-amber-50/60 backdrop-blur-sm text-amber-600 hover:bg-amber-100/60 border border-amber-200/50' : 'bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 hover:text-amber-300 border border-amber-500/20 hover:border-amber-500/40'}`}
+                  className={`px-3 py-1.5 rounded-full text-[11px] font-medium border shadow-sm ${secondaryBtn}`}
                 >
                   Move to
                 </button>
                 {showMoveMenu && (
-                  <div className={`absolute bottom-full mb-1 right-0 backdrop-blur-xl border rounded-xl py-1 shadow-xl max-h-48 overflow-y-auto min-w-[120px] ${dropdownBg}`}>
+                  <div className={`absolute bottom-full mb-1.5 right-0 backdrop-blur-xl border rounded-xl py-1 shadow-xl max-h-48 overflow-y-auto min-w-[130px] ${dropdownBg}`}>
                     {Object.keys(collections).map((name) => (
                       <button
                         key={name}
@@ -275,20 +284,20 @@ export default function Panel() {
               </div>
               <button
                 onClick={bulkDelete}
-                className={`px-2.5 py-1.5 rounded-xl text-[11px] font-medium transition-colors ${isLight ? 'bg-red-50/60 backdrop-blur-sm text-red-600 hover:bg-red-100/60 border border-red-200/50' : 'bg-red-500/10 hover:bg-red-500/20 text-red-400 hover:text-red-300 border border-red-500/20 hover:border-red-500/40'}`}
+                className={`px-3 py-1.5 rounded-full text-[11px] font-medium border shadow-sm ${btnHover} ${isLight ? 'bg-white text-red-600 hover:bg-red-50 hover:shadow-md border-red-200/50' : 'bg-zinc-900 text-red-400 hover:bg-red-950/50 hover:shadow-md border-red-900/50'}`}
               >
                 Delete ({selectedIds.length})
               </button>
               <button
                 onClick={clearSelection}
-                className={`px-2.5 py-1.5 rounded-xl text-[11px] font-medium transition-colors ${glassBtn} border`}
+                className={`px-3 py-1.5 rounded-full text-[11px] font-medium border shadow-sm ${secondaryBtn}`}
               >
                 Cancel
               </button>
             </div>
           </div>
         ) : (
-          <div className={`shrink-0 border-t ${border} px-3 py-2 ${barBg} space-y-1.5`}>
+          <div className={`shrink-0 sticky bottom-0 z-10 border-t ${border} px-4 py-3 ${barBg} space-y-2`}>
             <button
               onClick={async () => {
                 setRestoring(true)
@@ -305,13 +314,13 @@ export default function Panel() {
                 setRestoring(false)
               }}
               disabled={restoring || filtered.length === 0}
-              className={`w-full py-2 rounded-xl text-xs font-medium transition-colors disabled:opacity-30 ${isLight ? 'bg-emerald-50/60 backdrop-blur-sm text-emerald-600 hover:text-emerald-700 hover:bg-emerald-100/60 border border-emerald-200/50 hover:border-emerald-300/60' : 'text-emerald-600 hover:text-emerald-300 hover:bg-zinc-800/40 border border-transparent hover:border-emerald-800/60'}`}
+              className={`w-full py-2.5 rounded-full text-xs font-medium disabled:opacity-30 border shadow-sm ${primaryBtn}`}
             >
               {restoring ? 'Restoring...' : `Restore All (${filtered.length})`}
             </button>
             <button
               onClick={exportToMarkdown}
-              className={`w-full py-1.5 rounded-xl text-[11px] font-medium transition-colors ${isLight ? 'bg-white/50 backdrop-blur-sm text-zinc-500 hover:text-zinc-700 hover:bg-white/70 border border-white/20 hover:border-zinc-200/50' : 'text-zinc-600 hover:text-zinc-300 hover:bg-zinc-800/40 border border-transparent hover:border-zinc-800/60'}`}
+              className={`w-full py-2 rounded-full text-[11px] font-medium border shadow-sm ${secondaryBtn}`}
             >
               Export to Markdown
             </button>

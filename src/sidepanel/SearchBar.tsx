@@ -1,3 +1,4 @@
+import { useRef, useEffect, useState } from 'react'
 import { useVaultStore } from '../store/useVaultStore'
 
 export default function SearchBar({ onToggleSettings }: { onToggleSettings: () => void }) {
@@ -6,46 +7,133 @@ export default function SearchBar({ onToggleSettings }: { onToggleSettings: () =
   const viewMode = useVaultStore((s) => s.viewMode)
   const setViewMode = useVaultStore((s) => s.setViewMode)
   const theme = useVaultStore((s) => s.theme)
+  const isLight = theme === 'light'
 
-  const inputCls = theme === 'light'
-    ? 'bg-white/60 backdrop-blur-xl text-zinc-700 placeholder-zinc-400 border-zinc-200/60 focus:ring-zinc-300/50 focus:border-zinc-300/50'
-    : 'bg-zinc-900/60 backdrop-blur-xl text-zinc-100 placeholder-zinc-500 border-zinc-800/60 focus:ring-zinc-600/50 focus:border-zinc-600/50'
+  const containerRef = useRef<HTMLDivElement>(null)
+  const inputRef = useRef<HTMLInputElement>(null)
+  const [isNarrow, setIsNarrow] = useState(false)
+  const [searchActive, setSearchActive] = useState(false)
 
-  const toggleBg = theme === 'light'
-    ? 'bg-white/40 border-zinc-200/50'
-    : 'bg-zinc-900/30 border-zinc-800/60'
+  useEffect(() => {
+    const el = containerRef.current
+    if (!el) return
+    const ro = new ResizeObserver(([entry]) => {
+      setIsNarrow(entry.contentRect.width < 360)
+    })
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [])
 
-  const activeCls = theme === 'light'
-    ? 'bg-zinc-200/60 text-zinc-600'
-    : 'bg-zinc-700/60 text-zinc-200'
+  useEffect(() => {
+    if (searchActive && inputRef.current) {
+      inputRef.current.focus()
+    }
+  }, [searchActive])
 
-  const inactiveCls = theme === 'light'
-    ? 'bg-transparent text-zinc-400 hover:text-zinc-500'
-    : 'bg-transparent text-zinc-500 hover:text-zinc-300'
+  useEffect(() => {
+    function handler(e: KeyboardEvent) {
+      if (e.key === 'Escape' && searchActive) {
+        setSearchActive(false)
+        setSearchQuery('')
+      }
+    }
+    document.addEventListener('keydown', handler)
+    return () => document.removeEventListener('keydown', handler)
+  }, [searchActive, setSearchQuery])
 
-  const iconCls = theme === 'light'
-    ? 'text-zinc-400 hover:text-zinc-500 hover:bg-zinc-100/50 border-zinc-200/40 hover:border-zinc-300/50'
-    : 'text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800/40 border-transparent hover:border-zinc-700/50'
+  const inputCls = isLight
+    ? 'bg-white text-zinc-700 placeholder-zinc-400 border-zinc-200 shadow-sm focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50'
+    : 'bg-zinc-900 text-zinc-100 placeholder-zinc-500 border-zinc-800 shadow-sm focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50'
+
+  const toggleBg = isLight
+    ? 'bg-white border-zinc-200 shadow-sm'
+    : 'bg-zinc-900 border-zinc-800 shadow-sm'
+
+  const activeCls = isLight
+    ? 'bg-zinc-900 text-white'
+    : 'bg-zinc-100 text-black'
+
+  const inactiveCls = isLight
+    ? 'text-zinc-400 hover:text-zinc-600'
+    : 'text-zinc-500 hover:text-zinc-300'
+
+  const iconCls = isLight
+    ? 'text-zinc-400 hover:text-zinc-600 hover:bg-zinc-100 border-zinc-200/50'
+    : 'text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800/50 border-zinc-800'
+
+  const closeCls = isLight
+    ? 'text-zinc-400 hover:text-red-500 hover:bg-red-50 border-zinc-200/50'
+    : 'text-zinc-500 hover:text-red-400 hover:bg-red-950/50 border-zinc-800'
+
+  const searchIconCls = isLight
+    ? 'text-zinc-400 hover:text-indigo-600 hover:bg-indigo-50 border-zinc-200/50'
+    : 'text-zinc-500 hover:text-indigo-400 hover:bg-indigo-950/50 border-zinc-800'
+
+  const backCls = isLight
+    ? 'text-zinc-500 hover:text-zinc-700 hover:bg-zinc-100'
+    : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800'
+
+  const btnTransition = 'transition-all duration-200 hover:scale-105 active:scale-95'
+
+  if (isNarrow && searchActive) {
+    return (
+      <div ref={containerRef} className="flex items-center gap-2 px-3 pt-3 pb-2">
+        <button
+          onClick={() => { setSearchActive(false); setSearchQuery('') }}
+          className={`shrink-0 size-8 flex items-center justify-center rounded-xl ${btnTransition} ${backCls}`}
+        >
+          <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" />
+          </svg>
+        </button>
+        <div className="relative flex-1">
+          <svg className="absolute left-3 top-1/2 -translate-y-1/2 size-3.5 text-zinc-400 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
+          </svg>
+          <input
+            ref={inputRef}
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search vault..."
+            className={`w-full pl-9 pr-3 py-2 rounded-xl border text-sm transition-all outline-none ${inputCls}`}
+          />
+        </div>
+      </div>
+    )
+  }
 
   return (
-    <div className="flex items-center gap-2 px-3 pt-3 pb-2">
-      <div className="relative flex-1 max-w-[60%]">
-        <svg className="absolute left-3 top-1/2 -translate-y-1/2 size-3.5 text-zinc-400 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-          <path strokeLinecap="round" strokeLinejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
-        </svg>
-        <input
-          type="text"
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          placeholder="Search vault..."
-          className={`w-full pl-9 pr-3 py-2 rounded-xl border text-sm transition-all outline-none ${inputCls}`}
-        />
-      </div>
+    <div ref={containerRef} className="flex items-center gap-2 px-3 pt-3 pb-2">
+      {isNarrow ? (
+        <button
+          onClick={() => setSearchActive(true)}
+          className={`shrink-0 size-8 flex items-center justify-center rounded-xl border ${btnTransition} ${searchIconCls}`}
+          title="Search"
+        >
+          <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
+          </svg>
+        </button>
+      ) : (
+        <div className="relative flex-1 min-w-0">
+          <svg className="absolute left-3 top-1/2 -translate-y-1/2 size-3.5 text-zinc-400 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
+          </svg>
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search vault..."
+            className={`w-full pl-9 pr-3 py-2 rounded-xl border text-sm transition-all outline-none ${inputCls}`}
+          />
+        </div>
+      )}
 
-      <div className={`flex rounded-xl border overflow-hidden shrink-0 backdrop-blur-sm ${toggleBg}`}>
+      <div className={`flex rounded-xl border overflow-hidden shrink-0 ${toggleBg}`}>
         <button
           onClick={() => setViewMode('list')}
-          className={`p-1.5 transition-colors ${viewMode === 'list' ? activeCls : inactiveCls}`}
+          className={`p-1.5 ${btnTransition} ${viewMode === 'list' ? activeCls : inactiveCls}`}
           title="List view"
         >
           <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
@@ -54,7 +142,7 @@ export default function SearchBar({ onToggleSettings }: { onToggleSettings: () =
         </button>
         <button
           onClick={() => setViewMode('card')}
-          className={`p-1.5 transition-colors ${viewMode === 'card' ? activeCls : inactiveCls}`}
+          className={`p-1.5 ${btnTransition} ${viewMode === 'card' ? activeCls : inactiveCls}`}
           title="Card view"
         >
           <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
@@ -65,7 +153,7 @@ export default function SearchBar({ onToggleSettings }: { onToggleSettings: () =
 
       <button
         onClick={onToggleSettings}
-        className={`shrink-0 size-8 flex items-center justify-center rounded-xl backdrop-blur-sm transition-colors border ${iconCls}`}
+        className={`shrink-0 size-8 flex items-center justify-center rounded-xl border ${btnTransition} ${iconCls}`}
         title="Settings"
       >
         <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
@@ -76,7 +164,7 @@ export default function SearchBar({ onToggleSettings }: { onToggleSettings: () =
 
       <button
         onClick={() => window.close()}
-        className={`shrink-0 size-8 flex items-center justify-center rounded-xl backdrop-blur-sm transition-colors border ${iconCls}`}
+        className={`shrink-0 size-8 flex items-center justify-center rounded-xl border ${btnTransition} ${closeCls}`}
         title="Close panel"
       >
         <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>

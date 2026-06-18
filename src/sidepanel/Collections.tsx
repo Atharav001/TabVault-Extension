@@ -8,22 +8,22 @@ function DroppablePill({ name, isActive }: { name: string; isActive: boolean }) 
   const isLight = theme === 'light'
 
   const activeCls = isLight
-    ? 'bg-violet-100/70 text-violet-700 border-violet-200/60 shadow-sm shadow-violet-200/20'
-    : 'bg-zinc-700/60 text-zinc-100 border-zinc-600/60 shadow-sm'
+    ? 'bg-zinc-900 text-white border-zinc-900 shadow-sm'
+    : 'bg-zinc-100 text-black border-zinc-100 shadow-sm'
   const idleCls = isLight
-    ? 'bg-white/40 text-zinc-500 border-white/20 hover:text-zinc-700 hover:bg-white/60 hover:border-zinc-200/50'
-    : 'bg-zinc-900/40 text-zinc-500 border-zinc-800/50 hover:text-zinc-300 hover:border-zinc-700/50'
+    ? 'bg-zinc-200/60 text-zinc-600 border-transparent hover:bg-zinc-200/90 hover:text-zinc-800'
+    : 'bg-zinc-800/50 text-zinc-400 border-transparent hover:bg-zinc-700/60 hover:text-zinc-200'
   const overCls = isLight
-    ? 'ring-1 ring-violet-400/60 border-violet-300/60 bg-violet-50/60'
-    : 'ring-1 ring-violet-500/60 border-violet-500/60 bg-zinc-800/60'
+    ? 'ring-2 ring-indigo-400/60 border-indigo-400/60 bg-zinc-200/90'
+    : 'ring-2 ring-indigo-500/60 border-indigo-500/60 bg-zinc-700/60'
 
   return (
     <button
       ref={setNodeRef}
       onClick={() => setSelectedCollection(isActive ? null : name)}
       className={`
-        shrink-0 px-3 py-1.5 rounded-xl text-xs font-medium whitespace-nowrap
-        transition-all duration-150 border backdrop-blur-sm
+        shrink-0 px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap
+        transition-all duration-150 border
         ${isActive ? activeCls : idleCls}
         ${isOver ? overCls : ''}
       `}
@@ -42,18 +42,18 @@ export default function Collections() {
   const isLight = theme === 'light'
 
   const addCls = isLight
-    ? 'bg-white/40 backdrop-blur-sm text-zinc-400 hover:text-zinc-600 hover:bg-white/60 border-white/20 hover:border-zinc-200/50'
-    : 'bg-zinc-900/40 backdrop-blur-sm text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800/40 border-zinc-800/50'
+    ? 'bg-zinc-200/60 text-zinc-500 hover:text-zinc-700 hover:bg-zinc-200/90 border-transparent'
+    : 'bg-zinc-800/50 text-zinc-500 hover:text-zinc-300 hover:bg-zinc-700/60 border-transparent'
 
   return (
-    <div className="px-3 pb-2">
+    <div className="min-w-0 overflow-hidden px-3 pb-2">
       <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none">
         <button
           onClick={() => {
             const name = prompt('Collection name:')
             if (name) addCollection(name)
           }}
-          className={`shrink-0 size-6 flex items-center justify-center rounded-xl text-sm border transition-colors ${addCls}`}
+          className={`shrink-0 size-6 flex items-center justify-center rounded-full text-sm border transition-colors ${addCls}`}
           title="New collection"
         >
           <svg className="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
