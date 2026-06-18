@@ -13,6 +13,8 @@ interface VaultStore {
   selectedCollection: string | null
   viewMode: 'list' | 'card'
   isLoading: boolean
+  selectedIds: number[]
+  theme: 'dark' | 'light'
 
   setSearchQuery: (query: string) => void
   setSelectedCollection: (collection: string | null) => void
@@ -22,6 +24,12 @@ interface VaultStore {
   moveToCollection: (itemId: number, collection: string) => Promise<void>
   addCollection: (name: string) => void
   refreshCollections: () => void
+  toggleSelect: (id: number) => void
+  selectAll: (ids: number[]) => void
+  clearSelection: () => void
+  bulkDelete: () => Promise<void>
+  bulkMoveToCollection: (collection: string) => Promise<void>
+  setTheme: (theme: 'dark' | 'light') => void
 }
 
 export const useVaultStore = create<VaultStore>((set, get) => ({
@@ -37,10 +45,12 @@ export const useVaultStore = create<VaultStore>((set, get) => ({
   selectedCollection: null,
   viewMode: 'list',
   isLoading: false,
+  selectedIds: [],
+  theme: 'dark',
 
   setSearchQuery: (query) => set({ searchQuery: query }),
 
-  setSelectedCollection: (collection) => set({ selectedCollection: collection }),
+  setSelectedCollection: (collection) => set({ selectedCollection: collection, selectedIds: [] }),
 
   setViewMode: (mode) => set({ viewMode: mode }),
 
@@ -58,7 +68,8 @@ export const useVaultStore = create<VaultStore>((set, get) => ({
   deleteItem: async (id) => {
     await vaultDB.vault_items.delete(id)
     const items = get().items.filter((i) => i.id !== id)
-    set({ items })
+    set({ items, selectedIds: get().selectedIds.filter((sid) => sid !== id) })
+    chrome.runtime.sendMessage({ type: 'UPDATE_BADGE' })
   },
 
   moveToCollection: async (itemId, collection) => {
@@ -98,4 +109,37 @@ export const useVaultStore = create<VaultStore>((set, get) => ({
 
     set({ collections: merged, collectionOrder: mergedOrder })
   },
+
+  toggleSelect: (id) => {
+    const { selectedIds } = get()
+    if (selectedIds.includes(id)) {
+      set({ selectedIds: selectedIds.filter((sid) => sid !== id) })
+    } else {
+      set({ selectedIds: [...selectedIds, id] })
+    }
+  },
+
+  selectAll: (ids) => set({ selectedIds: ids }),
+
+  clearSelection: () => set({ selectedIds: [] }),
+
+  bulkDelete: async () => {
+    const { selectedIds } = get()
+    await vaultDB.vault_items.bulkDelete(selectedIds)
+    const items = get().items.filter((i) => i.id && !selectedIds.includes(i.id))
+    set({ items, selectedIds: [] })
+    chrome.runtime.sendMessage({ type: 'UPDATE_BADGE' })
+  },
+
+  bulkMoveToCollection: async (collection) => {
+    const { selectedIds } = get()
+    const ids = selectedIds.filter(Boolean)
+    await Promise.all(ids.map((id) => vaultDB.vault_items.update(id, { collection })))
+    const items = get().items.map((i) =>
+      i.id && selectedIds.includes(i.id) ? { ...i, collection } : i,
+    )
+    set({ items, selectedIds: [] })
+  },
+
+  setTheme: (theme) => set({ theme }),
 }))

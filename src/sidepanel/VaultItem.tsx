@@ -1,6 +1,6 @@
 import { useDraggable } from '@dnd-kit/core'
 import { CSS } from '@dnd-kit/utilities'
-import { memo } from 'react'
+import { memo, useCallback, useState } from 'react'
 import type { VaultItem as VaultItemType } from '../db/vaultDB'
 import { useVaultStore } from '../store/useVaultStore'
 import { restoreTab } from '../lib/restore'
@@ -15,8 +15,82 @@ function daysAgo(ts: number): string {
 const glassCard = 'bg-zinc-900/60 backdrop-blur-xl border-zinc-800/60'
 const glassHover = 'hover:bg-zinc-800/40 hover:border-zinc-700/60'
 
+function hashColor(str: string): string {
+  let hash = 0
+  for (let i = 0; i < str.length; i++) {
+    hash = str.charCodeAt(i) + ((hash << 5) - hash)
+  }
+  const colors = ['#7C3AED', '#3B82F6', '#F59E0B', '#10B981', '#EC4899', '#EF4444', '#8B5CF6', '#06B6D4']
+  return colors[Math.abs(hash) % colors.length]
+}
+
+function Favicon({ item }: { item: VaultItemType }) {
+  const [broken, setBroken] = useState(false)
+  if (broken || !item.favicon) {
+    const letter = (item.title || '?').charAt(0).toUpperCase()
+    const bg = hashColor(item.title || '?')
+    return (
+      <div
+        className="size-4 rounded shrink-0 flex items-center justify-center text-[9px] font-bold text-white"
+        style={{ backgroundColor: bg }}
+      >
+        {letter}
+      </div>
+    )
+  }
+  return (
+    <img
+      src={item.favicon}
+      alt=""
+      className="size-4 rounded shrink-0 mt-0.5"
+      onError={() => setBroken(true)}
+    />
+  )
+}
+
+function FaviconCard({ item }: { item: VaultItemType }) {
+  const [broken, setBroken] = useState(false)
+  if (broken || !item.favicon) {
+    const letter = (item.title || '?').charAt(0).toUpperCase()
+    const bg = hashColor(item.title || '?')
+    return (
+      <div
+        className="size-3.5 rounded shrink-0 flex items-center justify-center text-[8px] font-bold text-white"
+        style={{ backgroundColor: bg }}
+      >
+        {letter}
+      </div>
+    )
+  }
+  return (
+    <img
+      src={item.favicon}
+      alt=""
+      className="size-3.5 rounded shrink-0"
+      onError={() => setBroken(true)}
+    />
+  )
+}
+
+function Checkbox({ checked, onToggle }: { checked: boolean; onToggle: () => void }) {
+  return (
+    <button
+      onClick={(e) => { e.stopPropagation(); onToggle() }}
+      className={`shrink-0 size-4 rounded border flex items-center justify-center transition-colors ${checked ? 'bg-violet-500 border-violet-500' : 'border-zinc-600 hover:border-zinc-500'}`}
+    >
+      {checked && (
+        <svg className="size-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="m4.5 12.75 6 6 9-13.5" />
+        </svg>
+      )}
+    </button>
+  )
+}
+
 function ListItem({ item, style }: { item: VaultItemType; style?: React.CSSProperties }) {
   const deleteItem = useVaultStore((s) => s.deleteItem)
+  const selectedIds = useVaultStore((s) => s.selectedIds)
+  const toggleSelect = useVaultStore((s) => s.toggleSelect)
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: String(item.id!),
     data: { item },
@@ -25,6 +99,8 @@ function ListItem({ item, style }: { item: VaultItemType; style?: React.CSSPrope
   const dragStyle: React.CSSProperties = transform
     ? { transform: CSS.Translate.toString(transform), zIndex: 50, opacity: 0.85 }
     : {}
+
+  const isSelected = item.id ? selectedIds.includes(item.id) : false
 
   return (
     <div
@@ -35,15 +111,14 @@ function ListItem({ item, style }: { item: VaultItemType; style?: React.CSSPrope
       className={`
         flex items-start gap-2.5 px-3 py-2.5 rounded-xl cursor-grab active:cursor-grabbing
         transition-all border ${glassCard}
-        ${isDragging ? 'border-violet-500/50 shadow-xl shadow-violet-500/5' : `border-transparent ${glassHover}`}
+        ${isSelected ? 'border-violet-500/40 bg-zinc-800/50' : 'border-transparent'}
+        ${!isSelected && !isDragging ? glassHover : ''}
       `}
     >
-      <img
-        src={item.favicon || 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><text y="13" font-size="13">🔗</text></svg>'}
-        alt=""
-        className="size-4 rounded shrink-0 mt-0.5"
-        onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
-      />
+      <div className="mt-0.5" onClick={(e) => e.stopPropagation()}>
+        <Checkbox checked={isSelected} onToggle={() => item.id && toggleSelect(item.id)} />
+      </div>
+      <Favicon item={item} />
       <div className="flex-1 min-w-0">
         <span className="text-sm font-medium text-zinc-200 leading-snug line-clamp-2">{item.title || 'Untitled'}</span>
       </div>
@@ -74,6 +149,8 @@ function ListItem({ item, style }: { item: VaultItemType; style?: React.CSSPrope
 
 function CardItem({ item }: { item: VaultItemType }) {
   const deleteItem = useVaultStore((s) => s.deleteItem)
+  const selectedIds = useVaultStore((s) => s.selectedIds)
+  const toggleSelect = useVaultStore((s) => s.toggleSelect)
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: String(item.id!),
     data: { item },
@@ -83,30 +160,28 @@ function CardItem({ item }: { item: VaultItemType }) {
     ? { transform: CSS.Translate.toString(transform), zIndex: 50, opacity: 0.85 }
     : {}
 
+  const isSelected = item.id ? selectedIds.includes(item.id) : false
+
   return (
     <div
       ref={setNodeRef}
       {...listeners}
       {...attributes}
       style={dragStyle}
-      onClick={() => { if (item.id) restoreTab(item.id) }}
+      onClick={() => { if (item.id && !isDragging) restoreTab(item.id) }}
       className={`
         flex flex-col rounded-xl border p-2.5 cursor-grab active:cursor-grabbing h-full
         transition-all ${glassCard}
-        ${isDragging
-          ? 'border-violet-500/50 shadow-xl shadow-violet-500/5'
-          : glassHover
-        }
+        ${isSelected ? 'border-violet-500/40 bg-zinc-800/50' : ''}
+        ${!isSelected && !isDragging ? glassHover : ''}
       `}
     >
       <div className="flex items-start justify-between gap-1 mb-1.5">
         <div className="flex items-center gap-1.5 min-w-0">
-          <img
-            src={item.favicon || 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><text y="13" font-size="13">🔗</text></svg>'}
-            alt=""
-            className="size-3.5 rounded shrink-0"
-            onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
-          />
+          <div onClick={(e) => e.stopPropagation()}>
+            <Checkbox checked={isSelected} onToggle={() => item.id && toggleSelect(item.id)} />
+          </div>
+          <FaviconCard item={item} />
           <span className="text-xs font-semibold text-zinc-200 leading-tight line-clamp-2">{item.title || 'Untitled'}</span>
         </div>
         <button
@@ -139,4 +214,4 @@ function CardItem({ item }: { item: VaultItemType }) {
 const ListVaultItem = memo(ListItem)
 const CardVaultItem = memo(CardItem)
 
-export { ListVaultItem, CardVaultItem }
+export { ListVaultItem, CardVaultItem, Favicon, FaviconCard, Checkbox }

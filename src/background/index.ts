@@ -20,6 +20,43 @@ async function isExtensionEnabled(): Promise<boolean> {
   return result.extensionEnabled !== false
 }
 
+async function updateBadge(): Promise<void> {
+  const count = await vaultDB.vault_items.count()
+  chrome.action.setBadgeText({ text: count > 0 ? String(count) : '' })
+  chrome.action.setBadgeBackgroundColor({ color: '#333333' })
+}
+
+async function saveLinkToVault(url: string): Promise<void> {
+  if (!(await isExtensionEnabled())) return
+  let title = ''
+  let textPreview = ''
+  try {
+    const response = await fetch(url, { signal: AbortSignal.timeout(5000) })
+    const html = await response.text()
+    const doc = new DOMParser().parseFromString(html, 'text/html')
+    title = doc.title || ''
+    textPreview = (doc.body?.innerText || '').slice(0, 1000)
+  } catch {
+    title = url.replace(/^https?:\/\//, '').split('/')[0] || url
+  }
+  await vaultDB.vault_items.add({
+    url,
+    title,
+    favicon: '',
+    groupName: '',
+    groupColor: '',
+    scrollY: 0,
+    textPreview,
+    tags: [],
+    collection: 'default',
+    createdAt: Date.now(),
+    lastViewed: Date.now(),
+    tabIndex: -1,
+    windowId: 0,
+  })
+  await updateBadge()
+}
+
 async function archiveTab(tabId: number): Promise<void> {
   if (!(await isExtensionEnabled())) return
   try {
@@ -38,7 +75,6 @@ async function archiveTab(tabId: number): Promise<void> {
         groupName = group.title || ''
         groupColor = group.color || ''
       } catch {
-        // group may have been deleted
       }
     }
 
@@ -57,7 +93,6 @@ async function archiveTab(tabId: number): Promise<void> {
       scrollY = result?.result?.scrollY ?? 0
       textPreview = result?.result?.textPreview ?? ''
     } catch {
-      // scripting may fail on restricted pages
     }
 
     await vaultDB.vault_items.add({
@@ -81,6 +116,7 @@ async function archiveTab(tabId: number): Promise<void> {
     const activity = await getTabActivity()
     delete activity[tabId]
     await setTabActivity(activity)
+    await updateBadge()
   } catch (err) {
     console.error('archiveTab error:', err)
   }
@@ -92,13 +128,21 @@ chrome.runtime.onInstalled.addListener(() => {
     title: 'Save to Vault',
     contexts: ['page'],
   })
+  chrome.contextMenus.create({
+    id: 'save-link-to-vault',
+    title: 'Save Link to Vault',
+    contexts: ['link'],
+  })
   chrome.alarms.create(ALARM_NAME, { periodInMinutes: 5 })
   chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: false })
+  updateBadge()
 })
 
 chrome.contextMenus.onClicked.addListener((info, tab) => {
   if (info.menuItemId === 'save-to-vault' && tab?.id) {
     archiveTab(tab.id)
+  } else if (info.menuItemId === 'save-link-to-vault' && info.linkUrl) {
+    saveLinkToVault(info.linkUrl)
   }
 })
 
@@ -131,6 +175,7 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
 chrome.runtime.onStartup.addListener(() => {
   chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: false })
   cleanupInactiveTabs()
+  updateBadge()
 })
 
 chrome.commands.onCommand.addListener((command) => {
@@ -146,6 +191,8 @@ chrome.runtime.onMessage.addListener((message, _sender, _sendResponse) => {
     archiveTab(message.tabId)
   } else if (message.type === 'OPEN_SIDE_PANEL' && message.windowId) {
     chrome.sidePanel.open({ windowId: message.windowId })
+  } else if (message.type === 'UPDATE_BADGE') {
+    updateBadge()
   }
 })
 

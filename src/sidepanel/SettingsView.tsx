@@ -1,6 +1,16 @@
 import { exportToMarkdown } from '../lib/export'
+import { useVaultStore } from '../store/useVaultStore'
 
 export default function SettingsView({ onBack }: { onBack: () => void }) {
+  const theme = useVaultStore((s) => s.theme)
+  const setTheme = useVaultStore((s) => s.setTheme)
+
+  async function toggleTheme() {
+    const next = theme === 'dark' ? 'light' : 'dark'
+    setTheme(next)
+    await chrome.storage.local.set({ theme: next })
+  }
+
   return (
     <div className="flex flex-col h-screen bg-[#121212] text-zinc-100">
       <div className="flex items-center gap-3 px-4 py-3 border-b border-zinc-800/50 bg-gradient-to-b from-zinc-900/30 to-transparent backdrop-blur-sm">
@@ -18,6 +28,16 @@ export default function SettingsView({ onBack }: { onBack: () => void }) {
           <p className="text-xs text-zinc-500">
             Press <kbd className="px-1.5 py-0.5 rounded-md bg-zinc-800/80 text-zinc-300 text-xs border border-zinc-700/50">Ctrl+Shift+V</kbd> (<kbd className="px-1.5 py-0.5 rounded-md bg-zinc-800/80 text-zinc-300 text-xs border border-zinc-700/50">⌘+Shift+V</kbd> on Mac) to open the side panel.
           </p>
+        </div>
+
+        <div className="rounded-xl bg-zinc-900/50 backdrop-blur-xl p-4 border border-zinc-800/40">
+          <h2 className="text-sm font-medium text-zinc-200 mb-2">Appearance</h2>
+          <button
+            onClick={toggleTheme}
+            className="px-4 py-2 rounded-xl bg-zinc-800/30 hover:bg-zinc-800/50 text-zinc-300 text-sm font-medium transition-colors border border-zinc-800/50 hover:border-zinc-700/50"
+          >
+            {theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+          </button>
         </div>
 
         <div className="rounded-xl bg-zinc-900/50 backdrop-blur-xl p-4 border border-zinc-800/40">
