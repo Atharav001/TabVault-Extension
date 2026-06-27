@@ -1,14 +1,22 @@
 import { exportToMarkdown } from '../lib/export'
 import { useVaultStore } from '../store/useVaultStore'
+import { useState } from 'react'
 
 export default function SettingsView({ onBack }: { onBack: () => void }) {
   const theme = useVaultStore((s) => s.theme)
   const setTheme = useVaultStore((s) => s.setTheme)
+  const [testing, setTesting] = useState(false)
 
   async function toggleTheme() {
     const next = theme === 'dark' ? 'light' : 'dark'
     setTheme(next)
     await chrome.storage.local.set({ theme: next })
+  }
+
+  async function testNotification() {
+    setTesting(true)
+    await chrome.runtime.sendMessage({ type: 'TEST_PENDING_NOTIFICATION' })
+    setTimeout(() => setTesting(false), 2000)
   }
 
   const isLight = theme === 'light'
@@ -71,6 +79,20 @@ export default function SettingsView({ onBack }: { onBack: () => void }) {
             className={`px-4 py-2 rounded-xl text-sm font-medium transition-all border shadow-sm backdrop-blur-xl ${isLight ? 'bg-white/60 text-indigo-600 hover:bg-white/80 border-black/5' : 'bg-zinc-900/60 text-indigo-400 hover:bg-zinc-900/80 border-white/10'}`}
           >
             Export to Markdown
+          </button>
+        </div>
+
+        <div className={`rounded-xl p-4 border ${cardBg}`}>
+          <h2 className="text-sm font-medium mb-1">Test Notification</h2>
+          <p className={`text-xs ${subtext} mb-3`}>
+            Simulates a pending auto-archive notification using the current tab. Minimize the window, restore it, or click the result to test the full flow.
+          </p>
+          <button
+            onClick={testNotification}
+            disabled={testing}
+            className={`px-4 py-2 rounded-xl text-sm font-medium transition-all border shadow-sm backdrop-blur-xl disabled:opacity-40 ${isLight ? 'bg-white/60 text-amber-600 hover:bg-amber-50/80 border-black/5' : 'bg-zinc-900/60 text-amber-400 hover:bg-amber-950/30 border-white/10'}`}
+          >
+            {testing ? 'Sent...' : 'Trigger Test Notification'}
           </button>
         </div>
       </div>

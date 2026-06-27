@@ -197,6 +197,26 @@ async function createPendingNotification(count: number): Promise<void> {
   }
 }
 
+async function reNotifyPending(): Promise<void> {
+  const stored = await chrome.storage.local.get(PENDING_KEY)
+  const pendingIds: number[] = stored[PENDING_KEY] || []
+  if (pendingIds.length === 0) return
+  const tabs = await chrome.tabs.query({})
+  const pendingTabs = pendingIds
+    .map((id) => tabs.find((t) => t.id === id))
+    .filter((t): t is chrome.tabs.Tab => !!t)
+  if (pendingTabs.length === 0) return
+  notifySidePanel({
+    type: 'PENDING_AUTO_ARCHIVE',
+    tabs: pendingTabs.map(t => ({
+      tabId: t.id!,
+      title: t.title || 'Untitled',
+      url: t.url || '',
+    })),
+  })
+  await createPendingNotification(pendingTabs.length)
+}
+
 chrome.runtime.onInstalled.addListener(() => {
   chrome.contextMenus.create({
     id: 'save-to-vault',
@@ -304,6 +324,12 @@ chrome.notifications.onClicked.addListener((notificationId) => {
   }
 })
 
+chrome.windows.onFocusChanged.addListener((windowId) => {
+  if (windowId !== chrome.windows.WINDOW_ID_NONE) {
+    reNotifyPending()
+  }
+})
+
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   if (message.type === 'ARCHIVE_TAB' && message.tabId) {
     archiveTab(message.tabId).then(sendResponse)
@@ -332,6 +358,9 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     return true
   } else if (message.type === 'ARCHIVE_SELECTED' && Array.isArray(message.archiveIds)) {
     handleArchiveSelected(message.archiveIds, message.snoozeIds || []).then(sendResponse)
+    return true
+  } else if (message.type === 'TEST_PENDING_NOTIFICATION') {
+    testPendingNotification().then(() => sendResponse(true))
     return true
   }
 })
@@ -487,4 +516,18 @@ function cleanStaleActivityEntries(
       delete activity[id]
     }
   }
+}
+
+async function testPendingNotification(): Promise<void> {
+  const tabs = await chrome.tabs.query({ active: true, currentWindow: true })
+  if (tabs.length === 0) return
+  const tab = tabs[0]
+  if (!tab.id || !tab.url) return
+  const pendingIds = [tab.id]
+  await chrome.storage.local.set({ [PENDING_KEY]: pendingIds })
+  notifySidePanel({
+    type: 'PENDING_AUTO_ARCHIVE',
+    tabs: [{ tabId: tab.id, title: tab.title || 'Untitled', url: tab.url || '' }],
+  })
+  await createPendingNotification(1)
 }
