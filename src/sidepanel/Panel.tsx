@@ -150,8 +150,10 @@ export default function Panel() {
 
   useEffect(() => {
     fetchItems()
-    chrome.storage.local.get(['theme', 'pendingAutoArchive'], (r) => {
+    chrome.storage.local.get(['theme', 'viewMode', 'listColumns', 'pendingAutoArchive'], (r) => {
       if (r.theme) useVaultStore.getState().setTheme(r.theme)
+      if (r.viewMode === 'list' || r.viewMode === 'card') useVaultStore.getState().setViewMode(r.viewMode)
+      if (r.listColumns === '1' || r.listColumns === '2' || r.listColumns === 'auto') useVaultStore.getState().setListColumns(r.listColumns)
       if (Array.isArray(r.pendingAutoArchive) && r.pendingAutoArchive.length > 0) {
         const ids: number[] = r.pendingAutoArchive
         useVaultStore.getState().setPendingAutoArchive(

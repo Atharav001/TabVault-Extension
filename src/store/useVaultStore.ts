@@ -81,8 +81,14 @@ export const useVaultStore = create<VaultStore>((set, get) => ({
 
   setSelectedCollection: (collection) => set({ selectedCollection: collection, selectedIds: [] }),
 
-  setViewMode: (mode) => set({ viewMode: mode }),
-  setListColumns: (mode) => set({ listColumns: mode }),
+  setViewMode: (mode) => {
+    set({ viewMode: mode })
+    chrome.storage.local.set({ viewMode: mode })
+  },
+  setListColumns: (mode) => {
+    set({ listColumns: mode })
+    chrome.storage.local.set({ listColumns: mode })
+  },
 
   fetchItems: async () => {
     set({ isLoading: true })
