@@ -11,7 +11,8 @@
     "contextMenus",
     "scripting",
     "storage",
-    "downloads"
+    "downloads",
+    "notifications"
   ],
   "icons": {
     "16": "public/icon16.png",

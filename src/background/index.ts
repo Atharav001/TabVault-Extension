@@ -5,6 +5,7 @@ const STALE_THRESHOLD = 2 * 60 * 60 * 1000
 const ALARM_NAME = 'cleanup-inactive-tabs'
 const UNDO_KEY = 'lastArchived'
 const PENDING_KEY = 'pendingAutoArchive'
+const NOTIFICATION_ID = 'auto-archive-pending'
 
 async function getTabActivity(): Promise<Record<number, number>> {
   const result = await chrome.storage.local.get(TAB_ACTIVITY_KEY)
@@ -183,6 +184,19 @@ async function notifySidePanel(message: Record<string, unknown>): Promise<void> 
   }
 }
 
+async function createPendingNotification(count: number): Promise<void> {
+  try {
+    await chrome.notifications.create(NOTIFICATION_ID, {
+      type: 'basic',
+      iconUrl: 'public/icon128.png',
+      title: 'TabVault',
+      message: `${count} inactive tab${count === 1 ? '' : 's'} ready to archive`,
+      priority: 1,
+    })
+  } catch {
+  }
+}
+
 chrome.runtime.onInstalled.addListener(() => {
   chrome.contextMenus.create({
     id: 'save-to-vault',
@@ -238,13 +252,14 @@ chrome.tabs.onRemoved.addListener(async (tabId) => {
   const stored = await chrome.storage.local.get(PENDING_KEY)
   if (stored[PENDING_KEY]) {
     const updated = stored[PENDING_KEY].filter((id: number) => id !== tabId)
-    if (updated.length !== stored[PENDING_KEY].length) {
-      await chrome.storage.local.set({ [PENDING_KEY]: updated })
-      notifySidePanel({
-        type: 'PENDING_AUTO_ARCHIVE_REMOVE',
-        tabId,
-      })
-    }
+      if (updated.length !== stored[PENDING_KEY].length) {
+        await chrome.storage.local.set({ [PENDING_KEY]: updated })
+        if (updated.length === 0) chrome.notifications.clear(NOTIFICATION_ID)
+        notifySidePanel({
+          type: 'PENDING_AUTO_ARCHIVE_REMOVE',
+          tabId,
+        })
+      }
   }
 })
 
@@ -262,6 +277,14 @@ chrome.runtime.onStartup.addListener(() => {
 
 chrome.commands.onCommand.addListener((command) => {
   if (command === 'open-side-panel') {
+    chrome.windows.getCurrent({}, (win) => {
+      if (win?.id) chrome.sidePanel.open({ windowId: win.id })
+    })
+  }
+})
+
+chrome.notifications.onClicked.addListener((notificationId) => {
+  if (notificationId === NOTIFICATION_ID) {
     chrome.windows.getCurrent({}, (win) => {
       if (win?.id) chrome.sidePanel.open({ windowId: win.id })
     })
@@ -311,6 +334,7 @@ async function handleArchivePending(tabIds: number[]): Promise<number[]> {
   }
   const ids = await archiveTabsBatch(validIds)
   await chrome.storage.local.remove(PENDING_KEY)
+  chrome.notifications.clear(NOTIFICATION_ID)
   return ids
 }
 
@@ -322,6 +346,7 @@ async function handleSnoozePending(tabIds: number[]): Promise<void> {
   }
   await setTabActivity(activity)
   await chrome.storage.local.remove(PENDING_KEY)
+  chrome.notifications.clear(NOTIFICATION_ID)
 }
 
 async function handleDismissPending(tabIds: number[]): Promise<void> {
@@ -332,6 +357,7 @@ async function handleDismissPending(tabIds: number[]): Promise<void> {
   }
   await setTabActivity(activity)
   await chrome.storage.local.remove(PENDING_KEY)
+  chrome.notifications.clear(NOTIFICATION_ID)
 }
 
 async function handleArchiveSelected(
@@ -356,6 +382,7 @@ async function handleArchiveSelected(
     notifySidePanel({ type: 'TABS_ARCHIVED', ids: archived, count: archived.length })
   }
   await chrome.storage.local.remove(PENDING_KEY)
+  chrome.notifications.clear(NOTIFICATION_ID)
   return { archived }
 }
 
@@ -396,6 +423,7 @@ async function cleanupInactiveTabs(): Promise<void> {
 
     if (staleTabs.length === 0 && stillPending.length === 0) {
       await chrome.storage.local.remove(PENDING_KEY)
+      chrome.notifications.clear(NOTIFICATION_ID)
       return
     }
 
@@ -412,6 +440,7 @@ async function cleanupInactiveTabs(): Promise<void> {
           url: t.url || '',
         })),
       })
+      createPendingNotification(uniquePending.length)
     } else if (stillPending.length > 0) {
       // Re-notify for tabs still pending (user may not have seen first notification)
       const reNotifyTabs = stillPending
@@ -426,6 +455,7 @@ async function cleanupInactiveTabs(): Promise<void> {
             url: t.url || '',
           })),
         })
+        createPendingNotification(uniquePending.length)
       }
     }
   } catch (err) {
