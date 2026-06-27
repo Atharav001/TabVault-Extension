@@ -43,9 +43,15 @@ export default function SettingsView({ onBack }: { onBack: () => void }) {
       <div className="flex-1 p-4 space-y-3 overflow-y-auto">
         <div className={`rounded-xl p-4 border ${cardBg}`}>
           <h2 className="text-sm font-medium mb-1">Keyboard Shortcut</h2>
-          <p className={`text-xs ${subtext}`}>
-            Press <kbd className={`px-1.5 py-0.5 rounded-md text-xs border ${kbdBg}`}>Ctrl+Shift+V</kbd> (<kbd className={`px-1.5 py-0.5 rounded-md text-xs border ${kbdBg}`}>⌘+Shift+V</kbd> on Mac) to open the side panel.
+          <p className={`text-xs ${subtext} mb-3`}>
+            Current: <kbd className={`px-1.5 py-0.5 rounded-md text-xs border ${kbdBg}`}>{navigator.platform.includes('Mac') ? '⌘+Shift+V' : 'Ctrl+Shift+V'}</kbd>
           </p>
+          <button
+            onClick={() => chrome.tabs.create({ url: 'chrome://extensions/shortcuts' })}
+            className={`px-4 py-2 rounded-xl text-sm font-medium transition-all border shadow-sm backdrop-blur-xl ${isLight ? 'bg-white/60 text-zinc-600 hover:bg-white/80 border-black/5' : 'bg-zinc-900/60 text-zinc-300 hover:bg-zinc-900/80 border-white/10'}`}
+          >
+            Change Shortcut
+          </button>
         </div>
 
         <div className={`rounded-xl p-4 border ${cardBg}`}>
