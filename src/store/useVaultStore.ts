@@ -2,7 +2,7 @@ import { create } from 'zustand'
 import { vaultDB, type VaultItem } from '../db/vaultDB'
 import { restoreTab } from '../lib/restore'
 
-const DEFAULT_COLLECTIONS = ['default', 'work', 'personal', 'archive']
+const DEFAULT_COLLECTIONS = ['default']
 
 type CollectionMap = Record<string, { name: string; color: string }>
 
@@ -39,6 +39,7 @@ interface VaultStore {
   deleteItem: (id: number) => Promise<void>
   moveToCollection: (itemId: number, collection: string) => Promise<void>
   addCollection: (name: string) => void
+  renameCollection: (oldName: string, newName: string) => Promise<void>
   refreshCollections: () => void
   toggleSelect: (id: number) => void
   selectAll: (ids: number[]) => void
@@ -62,7 +63,7 @@ export const useVaultStore = create<VaultStore>((set, get) => ({
   collections: Object.fromEntries(
     DEFAULT_COLLECTIONS.map((name, i) => [
       name,
-      { name, color: ['#7C3AED', '#3B82F6', '#F59E0B', '#10B981'][i] },
+      { name, color: ['#7C3AED'][i] },
     ]),
   ),
   collectionOrder: DEFAULT_COLLECTIONS,
@@ -118,6 +119,25 @@ export const useVaultStore = create<VaultStore>((set, get) => ({
         [name]: { name, color: '#6B7280' },
       },
       collectionOrder: [...collectionOrder, name],
+    })
+  },
+
+  renameCollection: async (oldName, newName) => {
+    if (oldName === newName || !newName.trim()) return
+    const { collections, collectionOrder } = get()
+    if (collections[newName]) return
+    const color = collections[oldName]?.color || '#6B7280'
+    const updated = { ...collections, [newName]: { name: newName, color }, [oldName]: undefined as unknown as typeof collections[string] }
+    delete updated[oldName]
+    const items = get().items.map((i) =>
+      i.collection === oldName ? { ...i, collection: newName } : i,
+    )
+    await vaultDB.vault_items.where('collection').equals(oldName).modify({ collection: newName })
+    set({
+      collections: updated,
+      collectionOrder: collectionOrder.map((n) => (n === oldName ? newName : n)),
+      items,
+      selectedCollection: get().selectedCollection === oldName ? newName : get().selectedCollection,
     })
   },
 
@@ -213,27 +233,39 @@ export const useVaultStore = create<VaultStore>((set, get) => ({
     const { pendingAutoArchive } = get()
     if (pendingAutoArchive.length === 0) return
     const tabIds = pendingAutoArchive.map(t => t.tabId)
-    const ids = await chrome.runtime.sendMessage({ type: 'ARCHIVE_PENDING', tabIds })
-    if (ids && ids.length > 0) {
-      get().showToast(`Archived ${ids.length} inactive tabs`, ids)
-      get().fetchItems()
+    try {
+      const ids: number[] | undefined = await chrome.runtime.sendMessage({ type: 'ARCHIVE_PENDING', tabIds })
+      if (ids) {
+        if (ids.length > 0) {
+          get().showToast(`Archived ${ids.length} inactive tabs`, ids)
+          get().fetchItems()
+        }
+        set({ pendingAutoArchive: [] })
+      }
+    } catch {
+      // message failed — keep pending list so user can retry
     }
-    set({ pendingAutoArchive: [] })
   },
 
   snoozePendingTabs: async () => {
     const { pendingAutoArchive } = get()
     if (pendingAutoArchive.length === 0) return
     const tabIds = pendingAutoArchive.map(t => t.tabId)
-    await chrome.runtime.sendMessage({ type: 'SNOOZE_PENDING', tabIds })
-    set({ pendingAutoArchive: [] })
+    try {
+      const ok = await chrome.runtime.sendMessage({ type: 'SNOOZE_PENDING', tabIds })
+      if (ok) set({ pendingAutoArchive: [] })
+    } catch {
+    }
   },
 
   dismissPendingTabs: async () => {
     const { pendingAutoArchive } = get()
     if (pendingAutoArchive.length === 0) return
     const tabIds = pendingAutoArchive.map(t => t.tabId)
-    await chrome.runtime.sendMessage({ type: 'DISMISS_PENDING', tabIds })
-    set({ pendingAutoArchive: [] })
+    try {
+      const ok = await chrome.runtime.sendMessage({ type: 'DISMISS_PENDING', tabIds })
+      if (ok) set({ pendingAutoArchive: [] })
+    } catch {
+    }
   },
 }))

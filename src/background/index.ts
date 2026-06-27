@@ -2,8 +2,6 @@ import { vaultDB } from '../db/vaultDB'
 
 const TAB_ACTIVITY_KEY = 'tabActivity'
 const STALE_THRESHOLD = 2 * 60 * 60 * 1000
-const MEMORY_PRESSURE_LIMIT = 50
-const MEMORY_PRESSURE_ARCHIVE_COUNT = 5
 const ALARM_NAME = 'cleanup-inactive-tabs'
 const UNDO_KEY = 'lastArchived'
 const PENDING_KEY = 'pendingAutoArchive'
@@ -56,10 +54,13 @@ async function saveLinkToVault(url: string): Promise<void> {
   } catch {
     title = url.replace(/^https?:\/\//, '').split('/')[0] || url
   }
+  let domain = ''
+  try { domain = new URL(url).hostname } catch {}
   await vaultDB.vault_items.add({
     url,
     title,
     favicon: '',
+    faviconFallback: domain ? `https://www.google.com/s2/favicons?domain=${domain}&sz=64` : '',
     groupName: '',
     groupColor: '',
     scrollY: 0,
@@ -113,11 +114,15 @@ async function archiveTab(tabId: number): Promise<number | null> {
     }
 
     const favicon = await fetchFaviconBase64(tab.favIconUrl || '')
+    let domain = ''
+    try { domain = new URL(url).hostname } catch {}
+    const faviconFallback = domain ? `https://www.google.com/s2/favicons?domain=${domain}&sz=64` : ''
 
     const id = await vaultDB.vault_items.add({
       url,
       title: tab.title || '',
       favicon,
+      faviconFallback,
       groupName,
       groupColor,
       scrollY,
@@ -159,13 +164,7 @@ async function archiveTabsBatch(
   }
   if (ids.length > 0) {
     await chrome.storage.local.set({ [UNDO_KEY]: { ids, count: ids.length, timestamp: Date.now() } })
-    try {
-      const views = chrome.extension.getViews({ type: 'sidebar' })
-      for (const view of views) {
-        view.postMessage({ type: 'TABS_ARCHIVED', ids, count: ids.length }, '*')
-      }
-    } catch {
-    }
+    notifySidePanel({ type: 'TABS_ARCHIVED', ids, count: ids.length })
   }
   return ids
 }
@@ -295,6 +294,9 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   } else if (message.type === 'DISMISS_PENDING' && Array.isArray(message.tabIds)) {
     handleDismissPending(message.tabIds).then(() => sendResponse(true))
     return true
+  } else if (message.type === 'ARCHIVE_SELECTED' && Array.isArray(message.archiveIds)) {
+    handleArchiveSelected(message.archiveIds, message.snoozeIds || []).then(sendResponse)
+    return true
   }
 })
 
@@ -332,6 +334,31 @@ async function handleDismissPending(tabIds: number[]): Promise<void> {
   await chrome.storage.local.remove(PENDING_KEY)
 }
 
+async function handleArchiveSelected(
+  archiveIds: number[],
+  snoozeIds: number[],
+): Promise<{ archived: number[] }> {
+  const archived: number[] = []
+  for (const tabId of archiveIds) {
+    const id = await archiveTab(tabId)
+    if (id !== null) archived.push(id)
+  }
+  if (snoozeIds.length > 0) {
+    const activity = await getTabActivity()
+    const now = Date.now()
+    for (const tabId of snoozeIds) {
+      activity[tabId] = now + 3600000
+    }
+    await setTabActivity(activity)
+  }
+  if (archived.length > 0) {
+    await chrome.storage.local.set({ [UNDO_KEY]: { ids: archived, count: archived.length, timestamp: Date.now() } })
+    notifySidePanel({ type: 'TABS_ARCHIVED', ids: archived, count: archived.length })
+  }
+  await chrome.storage.local.remove(PENDING_KEY)
+  return { archived }
+}
+
 async function cleanupInactiveTabs(): Promise<void> {
   if (!(await isExtensionEnabled())) return
   try {
@@ -340,22 +367,6 @@ async function cleanupInactiveTabs(): Promise<void> {
     const now = Date.now()
 
     cleanStaleActivityEntries(activity, tabs)
-
-    if (tabs.length > MEMORY_PRESSURE_LIMIT) {
-      const candidates = tabs
-        .filter(t => t.id && !t.pinned && !t.audible)
-        .map(t => ({
-          tab: t,
-          lastActive: activity[t.id!] || 0,
-        }))
-        .sort((a, b) => a.lastActive - b.lastActive)
-        .slice(0, MEMORY_PRESSURE_ARCHIVE_COUNT)
-
-      for (const { tab } of candidates) {
-        if (tab.id) await archiveTab(tab.id)
-      }
-      return
-    }
 
     const stored = await chrome.storage.local.get(PENDING_KEY)
     const pendingIds: number[] = stored[PENDING_KEY] || []
@@ -401,6 +412,21 @@ async function cleanupInactiveTabs(): Promise<void> {
           url: t.url || '',
         })),
       })
+    } else if (stillPending.length > 0) {
+      // Re-notify for tabs still pending (user may not have seen first notification)
+      const reNotifyTabs = stillPending
+        .map((id) => tabs.find((t) => t.id === id))
+        .filter((t): t is chrome.tabs.Tab => !!t)
+      if (reNotifyTabs.length > 0) {
+        notifySidePanel({
+          type: 'PENDING_AUTO_ARCHIVE',
+          tabs: reNotifyTabs.map(t => ({
+            tabId: t.id!,
+            title: t.title || 'Untitled',
+            url: t.url || '',
+          })),
+        })
+      }
     }
   } catch (err) {
     console.error('cleanupInactiveTabs error:', err)

@@ -8,14 +8,14 @@ function DroppablePill({ name, isActive }: { name: string; isActive: boolean }) 
   const isLight = theme === 'light'
 
   const activeCls = isLight
-    ? 'bg-zinc-900 text-white border-zinc-900 shadow-sm'
-    : 'bg-zinc-100 text-black border-zinc-100 shadow-sm'
+    ? 'bg-zinc-900/90 backdrop-blur-xl text-white border-zinc-900/50 shadow-sm'
+    : 'bg-zinc-100/90 backdrop-blur-xl text-black border-zinc-100/50 shadow-sm'
   const idleCls = isLight
-    ? 'bg-zinc-200/60 text-zinc-600 border-transparent hover:bg-zinc-200/90 hover:text-zinc-800'
-    : 'bg-zinc-800/50 text-zinc-400 border-transparent hover:bg-zinc-700/60 hover:text-zinc-200'
+    ? 'bg-white/40 backdrop-blur-xl text-zinc-600 border-black/5 hover:bg-white/70 hover:text-zinc-800'
+    : 'bg-zinc-900/40 backdrop-blur-xl text-zinc-400 border-white/10 hover:bg-zinc-900/70 hover:text-zinc-200'
   const overCls = isLight
-    ? 'ring-2 ring-indigo-400/60 border-indigo-400/60 bg-zinc-200/90'
-    : 'ring-2 ring-indigo-500/60 border-indigo-500/60 bg-zinc-700/60'
+    ? 'ring-2 ring-indigo-400/60 border-indigo-400/60 bg-white/70'
+    : 'ring-2 ring-indigo-500/60 border-indigo-500/60 bg-zinc-900/70'
 
   return (
     <button
@@ -42,8 +42,8 @@ export default function Collections() {
   const isLight = theme === 'light'
 
   const addCls = isLight
-    ? 'bg-zinc-200/60 text-zinc-500 hover:text-zinc-700 hover:bg-zinc-200/90 border-transparent'
-    : 'bg-zinc-800/50 text-zinc-500 hover:text-zinc-300 hover:bg-zinc-700/60 border-transparent'
+    ? 'bg-white/40 backdrop-blur-xl text-zinc-500 hover:text-zinc-700 hover:bg-white/70 border-black/5'
+    : 'bg-zinc-900/40 backdrop-blur-xl text-zinc-500 hover:text-zinc-300 hover:bg-zinc-900/70 border-white/10'
 
   return (
     <div className="min-w-0 overflow-hidden px-2 pb-1.5">

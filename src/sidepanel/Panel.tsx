@@ -8,6 +8,7 @@ import SearchBar from './SearchBar'
 import Collections from './Collections'
 import VirtualList from './VirtualList'
 import EmptyState from './EmptyState'
+import CollectionGallery from './CollectionGallery'
 import SettingsView from './SettingsView'
 import Toast from './Toast'
 import ArchiveToast from './components/ArchiveToast'
@@ -28,11 +29,93 @@ function IconSnapshot() {
   )
 }
 
+const FOLDER_NAMES_KEY = 'dateFolderNames'
+
+function formatDateFromKey(key: string): string {
+  const [y, m, d] = key.split('-').map(Number)
+  const date = new Date(y, m, d)
+  const today = new Date()
+  const yesterday = new Date(today)
+  yesterday.setDate(yesterday.getDate() - 1)
+  if (
+    date.getFullYear() === today.getFullYear() &&
+    date.getMonth() === today.getMonth() &&
+    date.getDate() === today.getDate()
+  ) return 'Today'
+  if (
+    date.getFullYear() === yesterday.getFullYear() &&
+    date.getMonth() === yesterday.getMonth() &&
+    date.getDate() === yesterday.getDate()
+  ) return 'Yesterday'
+  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+}
+
+function FolderNameHeader({
+  dateKey,
+  folderNames,
+  setFolderNames,
+  text,
+  isLight,
+}: {
+  dateKey: string
+  folderNames: Record<string, string>
+  setFolderNames: (n: Record<string, string>) => void
+  text: string
+  isLight: boolean
+}) {
+  const [editing, setEditing] = useState(false)
+  const [val, setVal] = useState('')
+  const displayName = folderNames[dateKey] || formatDateFromKey(dateKey)
+
+  async function save(name: string) {
+    const trimmed = name.trim()
+    if (trimmed) {
+      const updated = { ...folderNames, [dateKey]: trimmed }
+      setFolderNames(updated)
+      await chrome.storage.local.set({ [FOLDER_NAMES_KEY]: updated })
+    }
+    setEditing(false)
+  }
+
+  if (editing) {
+    return (
+      <input
+        value={val}
+        onChange={(e) => setVal(e.target.value)}
+        onBlur={() => save(val)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') save(val)
+          if (e.key === 'Escape') setEditing(false)
+        }}
+        className={`flex-1 min-w-0 bg-transparent text-sm font-semibold outline-none border-b border-indigo-500/50 ${text}`}
+        autoFocus
+      />
+    )
+  }
+
+  return (
+    <span
+      className={`flex-1 min-w-0 text-sm font-semibold truncate ${text} cursor-pointer hover:opacity-70`}
+      onClick={() => { setVal(displayName); setEditing(true) }}
+      title="Click to rename"
+    >
+      {displayName}
+    </span>
+  )
+}
+
+function dateKey(ts: number): string {
+  const d = new Date(ts)
+  return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`
+}
+
 export default function Panel() {
   const items = useVaultStore((s) => s.items)
   const searchQuery = useVaultStore((s) => s.searchQuery)
   const selectedCollection = useVaultStore((s) => s.selectedCollection)
   const viewMode = useVaultStore((s) => s.viewMode)
+  const setSearchQuery = useVaultStore((s) => s.setSearchQuery)
+  const setViewMode = useVaultStore((s) => s.setViewMode)
   const fetchItems = useVaultStore((s) => s.fetchItems)
   const moveToCollection = useVaultStore((s) => s.moveToCollection)
   const selectedIds = useVaultStore((s) => s.selectedIds)
@@ -52,6 +135,14 @@ export default function Panel() {
   const [sendingTab, setSendingTab] = useState(false)
   const [showMoveMenu, setShowMoveMenu] = useState(false)
   const [snapshotting, setSnapshotting] = useState(false)
+  const [activeDateFolder, setActiveDateFolder] = useState<string | null>(null)
+  const [folderNames, setFolderNames] = useState<Record<string, string>>({})
+
+  useEffect(() => {
+    chrome.storage.local.get('dateFolderNames', (r) => {
+      if (r.dateFolderNames) setFolderNames(r.dateFolderNames)
+    })
+  }, [])
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
@@ -113,6 +204,9 @@ export default function Panel() {
     if (selectedCollection) {
       result = result.filter((i) => i.collection === selectedCollection)
     }
+    if (activeDateFolder) {
+      result = result.filter((i) => dateKey(i.createdAt) === activeDateFolder)
+    }
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase()
       result = result.filter(
@@ -124,9 +218,10 @@ export default function Panel() {
       )
     }
     return result.sort((a, b) => b.createdAt - a.createdAt)
-  }, [items, searchQuery, selectedCollection])
+  }, [items, searchQuery, selectedCollection, activeDateFolder])
 
-  const hasFilter = !!(searchQuery || selectedCollection)
+  const isInsideFolder = !!activeDateFolder
+  const hasFilter = !!(searchQuery || selectedCollection || isInsideFolder)
 
   useEffect(() => {
     if (selectedIds.length > 0) setShowMoveMenu(false)
@@ -213,26 +308,26 @@ export default function Panel() {
   const isLight = theme === 'light'
 
   const headerBg = isLight
-    ? 'bg-zinc-100/80 backdrop-blur-md border-b border-zinc-200/50'
-    : 'bg-zinc-950/80 backdrop-blur-md border-b border-zinc-800/40'
+    ? 'bg-white/60 backdrop-blur-xl border-b border-black/5 shadow-sm shadow-zinc-300/30'
+    : 'bg-zinc-950/60 backdrop-blur-xl border-b border-white/10'
   const barBg = isLight
-    ? 'bg-zinc-100/80 backdrop-blur-md border-t border-zinc-200/50'
-    : 'bg-zinc-950/80 backdrop-blur-md border-t border-zinc-800/40'
+    ? 'bg-white/60 backdrop-blur-xl border-t border-black/5 shadow-sm shadow-zinc-300/30'
+    : 'bg-zinc-950/60 backdrop-blur-xl border-t border-white/10'
   const text = isLight ? 'text-zinc-800' : 'text-zinc-100'
   const subtext = isLight ? 'text-zinc-500' : 'text-zinc-400'
-  const border = isLight ? 'border-zinc-200/50' : 'border-zinc-800/40'
+  const border = isLight ? 'border-black/5' : 'border-white/10'
 
   const btnHover = 'transition-all duration-200 hover:scale-105 active:scale-95'
 
   const primaryBtn = isLight
-    ? `bg-zinc-900 text-white hover:bg-zinc-800 border-zinc-900 shadow-sm ${btnHover}`
-    : `bg-zinc-100 text-black hover:bg-zinc-200 border-zinc-100 shadow-sm ${btnHover}`
+    ? `bg-zinc-900/90 backdrop-blur-xl text-white hover:bg-zinc-800/90 border-zinc-900/50 shadow-sm ${btnHover}`
+    : `bg-zinc-100/90 backdrop-blur-xl text-black hover:bg-zinc-200/90 border-zinc-100/50 shadow-sm ${btnHover}`
   const secondaryBtn = isLight
-    ? `bg-white text-zinc-600 hover:text-zinc-800 hover:bg-zinc-50 border-zinc-200 shadow-sm ${btnHover}`
-    : `bg-zinc-900 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800 border-zinc-800 shadow-sm ${btnHover}`
+    ? `bg-white/60 backdrop-blur-xl text-zinc-600 hover:text-zinc-800 hover:bg-white/80 border-black/5 shadow-sm ${btnHover}`
+    : `bg-zinc-900/60 backdrop-blur-xl text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900/80 border-white/10 shadow-sm ${btnHover}`
   const dropdownBg = isLight
-    ? 'bg-white/95 backdrop-blur-xl border-zinc-200 shadow-lg'
-    : 'bg-zinc-900/95 backdrop-blur-xl border-zinc-700 shadow-lg'
+    ? 'bg-white/90 backdrop-blur-xl border-black/5 shadow-xl'
+    : 'bg-zinc-900/90 backdrop-blur-xl border-white/10 shadow-xl'
   const dropdownItem = isLight
     ? 'text-zinc-600 hover:bg-zinc-100'
     : 'text-zinc-300 hover:bg-zinc-800'
@@ -258,7 +353,7 @@ export default function Panel() {
               <button
                 onClick={snapshotToday}
                 disabled={snapshotting}
-                className={`shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-medium border shadow-sm ${btnHover} disabled:opacity-40 ${isLight ? 'bg-white text-amber-600 hover:bg-amber-50 hover:shadow-md border-zinc-200' : 'bg-zinc-900 text-amber-400 hover:bg-amber-950/30 hover:shadow-md border-zinc-800'}`}
+                className={`shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-medium border shadow-sm backdrop-blur-xl ${btnHover} disabled:opacity-40 ${isLight ? 'bg-white/60 text-amber-600 hover:bg-amber-50/80 hover:shadow-md border-black/5' : 'bg-zinc-900/60 text-amber-400 hover:bg-amber-950/30 hover:shadow-md border-white/10'}`}
                 title="Snapshot all tabs in current window"
               >
                 <IconSnapshot />
@@ -268,7 +363,7 @@ export default function Panel() {
               <button
                 onClick={sendCurrentTab}
                 disabled={sendingTab}
-                className={`shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-medium border shadow-sm ${btnHover} disabled:opacity-40 ${isLight ? 'bg-white text-indigo-600 hover:bg-indigo-50 hover:shadow-md border-zinc-200' : 'bg-zinc-900 text-indigo-400 hover:bg-indigo-950/30 hover:shadow-md border-zinc-800'}`}
+                className={`shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-medium border shadow-sm backdrop-blur-xl ${btnHover} disabled:opacity-40 ${isLight ? 'bg-white/60 text-indigo-600 hover:bg-indigo-50/80 hover:shadow-md border-black/5' : 'bg-zinc-900/60 text-indigo-400 hover:bg-indigo-950/30 hover:shadow-md border-white/10'}`}
                 title="Send current tab to vault"
               >
                 <IconSend />
@@ -282,8 +377,36 @@ export default function Panel() {
         <ArchiveToast />
 
         <div className="flex-1 min-h-0">
-          {filtered.length === 0 ? (
+          {isInsideFolder ? (
+            <>
+              <div className={`sticky top-0 z-10 ${headerBg} px-3 py-2 flex items-center gap-2`}>
+                <button
+                  onClick={() => setActiveDateFolder(null)}
+                  className={`shrink-0 size-7 flex items-center justify-center rounded-lg border transition-colors ${isLight ? 'text-zinc-400 hover:text-zinc-600 hover:bg-white/80 border-black/5' : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900/80 border-white/10'}`}
+                >
+                  <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" />
+                  </svg>
+                </button>
+                <FolderNameHeader
+                  dateKey={activeDateFolder}
+                  folderNames={folderNames}
+                  setFolderNames={setFolderNames}
+                  text={text}
+                  isLight={isLight}
+                />
+                <span className={`text-[10px] ${subtext}`}>{filtered.length}</span>
+              </div>
+              {filtered.length === 0 ? (
+                <div className={`text-sm ${subtext} text-center py-8`}>No tabs in this folder</div>
+              ) : (
+                <VirtualList items={filtered} viewMode="list" />
+              )}
+            </>
+          ) : filtered.length === 0 ? (
             <EmptyState hasFilter={hasFilter} />
+          ) : viewMode === 'card' && !selectedCollection && !searchQuery.trim() ? (
+            <CollectionGallery onSelectDate={(k) => setActiveDateFolder(k)} />
           ) : (
             <VirtualList items={filtered} viewMode={viewMode} />
           )}
@@ -318,19 +441,19 @@ export default function Panel() {
               </div>
               <button
                 onClick={bulkOpenSelected}
-                className={`px-3 py-1.5 rounded-full text-[11px] font-medium border shadow-sm ${btnHover} ${isLight ? 'bg-white text-emerald-600 hover:bg-emerald-50 hover:shadow-md border-emerald-200/50' : 'bg-zinc-900 text-emerald-400 hover:bg-emerald-950/30 hover:shadow-md border-emerald-900/50'}`}
+                className={`px-3 py-1.5 rounded-full text-[11px] font-medium border shadow-sm backdrop-blur-xl ${btnHover} ${isLight ? 'bg-white/60 text-emerald-600 hover:bg-emerald-50/80 hover:shadow-md border-black/5' : 'bg-zinc-900/60 text-emerald-400 hover:bg-emerald-950/30 hover:shadow-md border-white/10'}`}
               >
                 Open ({selectedIds.length})
               </button>
               <button
                 onClick={bulkDelete}
-                className={`px-3 py-1.5 rounded-full text-[11px] font-medium border shadow-sm ${btnHover} ${isLight ? 'bg-white text-red-600 hover:bg-red-50 hover:shadow-md border-red-200/50' : 'bg-zinc-900 text-red-400 hover:bg-red-950/50 hover:shadow-md border-red-900/50'}`}
+                className={`px-3 py-1.5 rounded-full text-[11px] font-medium border shadow-sm backdrop-blur-xl ${btnHover} ${isLight ? 'bg-white/60 text-red-600 hover:bg-red-50/80 hover:shadow-md border-black/5' : 'bg-zinc-900/60 text-red-400 hover:bg-red-950/50 hover:shadow-md border-white/10'}`}
               >
                 Delete ({selectedIds.length})
               </button>
               <button
                 onClick={clearSelection}
-                className={`px-3 py-1.5 rounded-full text-[11px] font-medium border shadow-sm ${secondaryBtn}`}
+                className={`px-3 py-1.5 rounded-full text-[11px] font-medium border shadow-sm backdrop-blur-xl ${secondaryBtn}`}
               >
                 Cancel
               </button>
@@ -354,13 +477,13 @@ export default function Panel() {
                 setRestoring(false)
               }}
               disabled={restoring || filtered.length === 0}
-              className={`w-full py-2.5 rounded-full text-xs font-medium disabled:opacity-30 border shadow-sm ${primaryBtn}`}
+              className={`w-full py-2.5 rounded-full text-xs font-medium disabled:opacity-30 border shadow-sm backdrop-blur-xl ${primaryBtn}`}
             >
               {restoring ? 'Restoring...' : `Restore All (${filtered.length})`}
             </button>
             <button
               onClick={exportToMarkdown}
-              className={`w-full py-2 rounded-full text-[11px] font-medium border shadow-sm ${secondaryBtn}`}
+              className={`w-full py-2 rounded-full text-[11px] font-medium border shadow-sm backdrop-blur-xl ${secondaryBtn}`}
             >
               Export to Markdown
             </button>

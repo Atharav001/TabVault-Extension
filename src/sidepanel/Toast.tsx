@@ -11,7 +11,7 @@ export default function Toast() {
 
   return (
     <div className="absolute bottom-4 left-4 right-4 z-50 animate-slide-up">
-      <div className={`flex items-center gap-3 px-4 py-3 rounded-xl border shadow-lg backdrop-blur-md ${isLight ? 'bg-white/95 border-zinc-200 shadow-zinc-200/30' : 'bg-zinc-900/95 border-zinc-700/60'}`}>
+      <div className={`flex items-center gap-3 px-4 py-3 rounded-xl border shadow-lg backdrop-blur-xl ${isLight ? 'bg-white/80 border-black/5 shadow-zinc-300/30' : 'bg-zinc-900/80 border-white/10'}`}>
         <span className={`text-sm flex-1 ${isLight ? 'text-zinc-700' : 'text-zinc-200'}`}>{toast.message}</span>
         <button
           onClick={undoArchive}

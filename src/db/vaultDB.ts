@@ -5,6 +5,7 @@ export interface VaultItem {
   url: string
   title: string
   favicon: string
+  faviconFallback: string
   groupName: string
   groupColor: string
   scrollY: number

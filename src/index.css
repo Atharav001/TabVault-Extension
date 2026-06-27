@@ -2,11 +2,26 @@
 
 html {
   background-color: #09090b;
+  background-image:
+    radial-gradient(ellipse 100% 55% at 20% 15%, #1c1820 0%, transparent 60%),
+    radial-gradient(ellipse 80% 50% at 80% 30%, #0f172a 0%, transparent 55%),
+    radial-gradient(ellipse 70% 45% at 40% 85%, #1a0f0f 0%, transparent 50%);
+  background-attachment: fixed;
   color: #f4f4f5;
 }
 html.light {
-  background-color: #f4f4f5;
+  background-color: #f8f0ea;
+  background-image:
+    radial-gradient(ellipse 100% 60% at 15% 20%, #f9d8d0 0%, transparent 60%),
+    radial-gradient(ellipse 80% 55% at 85% 30%, #d4d8f0 0%, transparent 55%),
+    radial-gradient(ellipse 70% 50% at 50% 80%, #e0d4ec 0%, transparent 50%);
+  background-attachment: fixed;
   color: #27272a;
+}
+
+html, html.light {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 .scrollbar-none {

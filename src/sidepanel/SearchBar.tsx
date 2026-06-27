@@ -44,36 +44,36 @@ export default function SearchBar({ onToggleSettings }: { onToggleSettings: () =
   }, [searchActive, setSearchQuery])
 
   const inputCls = isLight
-    ? 'bg-white text-zinc-700 placeholder-zinc-400 border-zinc-200 shadow-sm focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50'
-    : 'bg-zinc-900 text-zinc-100 placeholder-zinc-500 border-zinc-800 shadow-sm focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50'
+    ? 'bg-white/60 backdrop-blur-xl text-zinc-700 placeholder-zinc-400 border-black/5 shadow-sm focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50'
+    : 'bg-zinc-900/60 backdrop-blur-xl text-zinc-100 placeholder-zinc-500 border-white/10 shadow-sm focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50'
 
   const toggleBg = isLight
-    ? 'bg-white border-zinc-200 shadow-sm'
-    : 'bg-zinc-900 border-zinc-800 shadow-sm'
+    ? 'bg-white/60 backdrop-blur-xl border-black/5 shadow-sm'
+    : 'bg-zinc-900/60 backdrop-blur-xl border-white/10 shadow-sm'
 
   const activeCls = isLight
-    ? 'bg-zinc-900 text-white'
-    : 'bg-zinc-100 text-black'
+    ? 'bg-zinc-900/90 backdrop-blur-xl text-white'
+    : 'bg-zinc-100/90 backdrop-blur-xl text-black'
 
   const inactiveCls = isLight
     ? 'text-zinc-400 hover:text-zinc-600'
     : 'text-zinc-500 hover:text-zinc-300'
 
   const iconCls = isLight
-    ? 'text-zinc-400 hover:text-zinc-600 hover:bg-zinc-100 border-zinc-200/50'
-    : 'text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800/50 border-zinc-800'
+    ? 'text-zinc-400 hover:text-zinc-600 hover:bg-white/80 border-black/5'
+    : 'text-zinc-500 hover:text-zinc-300 hover:bg-zinc-900/80 border-white/10'
 
   const closeCls = isLight
-    ? 'text-zinc-400 hover:text-red-500 hover:bg-red-50 border-zinc-200/50'
-    : 'text-zinc-500 hover:text-red-400 hover:bg-red-950/50 border-zinc-800'
+    ? 'text-zinc-400 hover:text-red-500 hover:bg-red-50/80 border-black/5'
+    : 'text-zinc-500 hover:text-red-400 hover:bg-red-950/50 border-white/10'
 
   const searchIconCls = isLight
-    ? 'text-zinc-400 hover:text-indigo-600 hover:bg-indigo-50 border-zinc-200/50'
-    : 'text-zinc-500 hover:text-indigo-400 hover:bg-indigo-950/50 border-zinc-800'
+    ? 'text-zinc-400 hover:text-indigo-600 hover:bg-indigo-50/80 border-black/5'
+    : 'text-zinc-500 hover:text-indigo-400 hover:bg-indigo-950/50 border-white/10'
 
   const backCls = isLight
-    ? 'text-zinc-500 hover:text-zinc-700 hover:bg-zinc-100'
-    : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800'
+    ? 'text-zinc-500 hover:text-zinc-700 hover:bg-white/70'
+    : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900/70'
 
   const btnTransition = 'transition-all duration-200 hover:scale-105 active:scale-95'
 

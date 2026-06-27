@@ -17,21 +17,21 @@ export default function SettingsView({ onBack }: { onBack: () => void }) {
   const subtext = isLight ? 'text-zinc-500' : 'text-zinc-400'
   const border = isLight ? 'border-zinc-200/50' : 'border-zinc-800/40'
   const cardBg = isLight
-    ? 'bg-white border-zinc-200 shadow-sm'
-    : 'bg-zinc-900 border-zinc-800 shadow-sm'
+    ? 'bg-white/60 backdrop-blur-xl border-black/5 shadow-sm shadow-zinc-300/30'
+    : 'bg-zinc-900/60 backdrop-blur-xl border-white/10'
   const backBtn = isLight
-    ? 'text-zinc-400 hover:text-zinc-600 hover:bg-zinc-100 border-zinc-200'
-    : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800 border-zinc-800'
+    ? 'text-zinc-400 hover:text-zinc-600 hover:bg-white/80 border-black/5'
+    : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900/80 border-white/10'
   const kbdBg = isLight
-    ? 'bg-zinc-100 text-zinc-500 border-zinc-200'
-    : 'bg-zinc-800 text-zinc-300 border-zinc-700'
+    ? 'bg-white/60 text-zinc-500 border-black/5'
+    : 'bg-zinc-900/60 text-zinc-300 border-white/10'
   const primaryBtn = isLight
-    ? 'bg-zinc-900 text-white hover:bg-zinc-800 border-zinc-900'
-    : 'bg-zinc-100 text-black hover:bg-zinc-200 border-zinc-100'
+    ? 'bg-zinc-900/90 backdrop-blur-xl text-white hover:bg-zinc-800/90 border-zinc-900/50'
+    : 'bg-zinc-100/90 backdrop-blur-xl text-black hover:bg-zinc-200/90 border-zinc-100/50'
 
   return (
     <div className={`flex flex-col h-screen ${text}`}>
-      <div className={`flex items-center gap-3 px-4 py-3 border-b ${border} ${isLight ? 'bg-zinc-100/80 backdrop-blur-md' : 'bg-zinc-950/80 backdrop-blur-md'}`}>
+      <div className={`flex items-center gap-3 px-4 py-3 border-b ${border} ${isLight ? 'bg-white/60 backdrop-blur-xl' : 'bg-zinc-950/60 backdrop-blur-xl'}`}>
         <button onClick={onBack} className={`size-7 flex items-center justify-center rounded-lg border transition-colors ${backBtn}`}>
           <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" />
@@ -62,7 +62,7 @@ export default function SettingsView({ onBack }: { onBack: () => void }) {
           <h2 className="text-sm font-medium mb-2">Data</h2>
           <button
             onClick={exportToMarkdown}
-            className={`px-4 py-2 rounded-xl text-sm font-medium transition-all border shadow-sm ${isLight ? 'bg-white text-indigo-600 hover:bg-zinc-50 border-zinc-200' : 'bg-zinc-900 text-indigo-400 hover:bg-zinc-800 border-zinc-800'}`}
+            className={`px-4 py-2 rounded-xl text-sm font-medium transition-all border shadow-sm backdrop-blur-xl ${isLight ? 'bg-white/60 text-indigo-600 hover:bg-white/80 border-black/5' : 'bg-zinc-900/60 text-indigo-400 hover:bg-zinc-900/80 border-white/10'}`}
           >
             Export to Markdown
           </button>

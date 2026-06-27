@@ -5,8 +5,8 @@ export default function EmptyState({ hasFilter }: { hasFilter: boolean }) {
   const isLight = theme === 'light'
 
   const iconBg = isLight
-    ? 'bg-white border-zinc-200 shadow-sm'
-    : 'bg-zinc-900 border-zinc-800 shadow-sm'
+    ? 'bg-white/60 backdrop-blur-xl border-black/5 shadow-sm'
+    : 'bg-zinc-900/60 backdrop-blur-xl border-white/10'
   const headCls = isLight ? 'text-zinc-700' : 'text-zinc-300'
   const subCls = isLight ? 'text-zinc-500' : 'text-zinc-500'
 

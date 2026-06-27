@@ -55,62 +55,46 @@ function IconGear() {
 }
 
 export default function Popup() {
-  const [sending, setSending] = useState<'idle' | 'sending' | 'done'>('idle')
-  const [status, setStatus] = useState('')
   const [enabled, setEnabled] = useState(true)
 
   async function sendCurrentTab() {
-    setSending('sending')
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true })
     if (tab?.id) {
       chrome.runtime.sendMessage({ type: 'ARCHIVE_TAB', tabId: tab.id })
-      setStatus('Sent to vault')
     }
-    setSending('done')
-    setTimeout(() => { setSending('idle'); setStatus('') }, 1500)
+    window.close()
   }
 
   async function sendCurrentWindow() {
-    setSending('sending')
     const tabs = await chrome.tabs.query({ currentWindow: true, pinned: false })
     const unpinned = tabs.filter(t => !t.pinned && t.id && t.url && !t.url.startsWith('chrome://') && !t.url.startsWith('brave://'))
     const tabIds = unpinned.map(t => t.id!).filter(Boolean)
-    const ids = await chrome.runtime.sendMessage({ type: 'ARCHIVE_TABS_BATCH', tabIds })
-    setStatus(`Sent ${ids?.length || 0} tabs to vault`)
-    setSending('done')
-    setTimeout(() => { setSending('idle'); setStatus('') }, 2000)
+    chrome.runtime.sendMessage({ type: 'ARCHIVE_TABS_BATCH', tabIds })
+    window.close()
   }
 
   async function sendAllWindows() {
-    setSending('sending')
     const windows = await chrome.windows.getAll()
-    let total = 0
     for (const win of windows) {
       if (!win.id) continue
       const tabs = await chrome.tabs.query({ windowId: win.id, pinned: false })
       const unpinned = tabs.filter(t => !t.pinned && t.id && t.url && !t.url.startsWith('chrome://') && !t.url.startsWith('brave://'))
       const tabIds = unpinned.map(t => t.id!).filter(Boolean)
       if (tabIds.length > 0) {
-        const ids = await chrome.runtime.sendMessage({ type: 'ARCHIVE_TABS_BATCH', tabIds })
-        total += ids?.length || 0
+        chrome.runtime.sendMessage({ type: 'ARCHIVE_TABS_BATCH', tabIds })
       }
     }
-    setStatus(`Sent ${total} tabs to vault`)
-    setSending('done')
-    setTimeout(() => { setSending('idle'); setStatus('') }, 2000)
+    window.close()
   }
 
   async function snapshotToday() {
-    setSending('sending')
     const tabs = await chrome.tabs.query({ currentWindow: true, pinned: false })
     const unpinned = tabs.filter(t => !t.pinned && t.id && t.url && !t.url.startsWith('chrome://') && !t.url.startsWith('brave://') && !t.url.startsWith('about:'))
     const tabIds = unpinned.map(t => t.id!).filter(Boolean)
     const dateStr = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
     const collection = `Session: ${dateStr}`
-    const ids = await chrome.runtime.sendMessage({ type: 'ARCHIVE_TABS_BATCH', tabIds, collection })
-    setStatus(`Snapshot: ${ids?.length || 0} tabs saved`)
-    setSending('done')
-    setTimeout(() => { setSending('idle'); setStatus('') }, 2000)
+    chrome.runtime.sendMessage({ type: 'ARCHIVE_TABS_BATCH', tabIds, collection })
+    window.close()
   }
 
   useEffect(() => {
@@ -123,19 +107,19 @@ export default function Popup() {
     const next = !enabled
     setEnabled(next)
     await chrome.storage.local.set({ extensionEnabled: next })
-    setStatus(next ? 'Extension enabled' : 'Extension disabled')
-    setTimeout(() => setStatus(''), 1500)
   }
 
   async function openSidePanel() {
     const windowId = await getCurrentWindowId()
     chrome.runtime.sendMessage({ type: 'OPEN_SIDE_PANEL', windowId })
+    window.close()
   }
 
   async function openSettings() {
     const windowId = await getCurrentWindowId()
     await chrome.storage.local.set({ sidePanelRoute: 'settings' })
     chrome.runtime.sendMessage({ type: 'OPEN_SIDE_PANEL', windowId })
+    window.close()
   }
 
   const baseBtn =
@@ -159,8 +143,7 @@ export default function Popup() {
 
       <button
         onClick={sendCurrentTab}
-        disabled={sending === 'sending'}
-        className={`${baseBtn} bg-violet-500/10 hover:bg-violet-500/20 text-violet-300 border-violet-500/20 hover:border-violet-500/40 disabled:opacity-40`}
+        className={`${baseBtn} bg-violet-500/10 hover:bg-violet-500/20 text-violet-300 border-violet-500/20 hover:border-violet-500/40`}
       >
         <IconSend />
         Send Current Tab to Vault
@@ -168,8 +151,7 @@ export default function Popup() {
 
       <button
         onClick={sendCurrentWindow}
-        disabled={sending === 'sending'}
-        className={`${baseBtn} bg-blue-500/10 hover:bg-blue-500/20 text-blue-300 border-blue-500/20 hover:border-blue-500/40 disabled:opacity-40`}
+        className={`${baseBtn} bg-blue-500/10 hover:bg-blue-500/20 text-blue-300 border-blue-500/20 hover:border-blue-500/40`}
       >
         <IconWindow />
         Send Current Window
@@ -177,8 +159,7 @@ export default function Popup() {
 
       <button
         onClick={sendAllWindows}
-        disabled={sending === 'sending'}
-        className={`${baseBtn} bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-300 border-indigo-500/20 hover:border-indigo-500/40 disabled:opacity-40`}
+        className={`${baseBtn} bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-300 border-indigo-500/20 hover:border-indigo-500/40`}
       >
         <IconWindows />
         Send All Open Windows
@@ -186,8 +167,7 @@ export default function Popup() {
 
       <button
         onClick={snapshotToday}
-        disabled={sending === 'sending'}
-        className={`${baseBtn} bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border-amber-500/20 hover:border-amber-500/40 disabled:opacity-40`}
+        className={`${baseBtn} bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border-amber-500/20 hover:border-amber-500/40`}
       >
         <IconSnapshot />
         Snapshot Today
@@ -210,10 +190,6 @@ export default function Popup() {
         <IconGear />
         Settings
       </button>
-
-      {status && (
-        <div className="text-[11px] text-zinc-500 text-center pt-0.5 pb-1">{status}</div>
-      )}
     </div>
   )
 }

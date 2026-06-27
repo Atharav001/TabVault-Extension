@@ -107,7 +107,7 @@ function VirtualListInner({ items, viewMode }: { items: VaultItemType[]; viewMod
 
   useEffect(() => {
     virtualizer.measure()
-  })
+  }, [items.length, viewMode, listColumns])
 
   const headerCls = (row: { type: 'header'; label: string; isSession: boolean }) => {
     if (row.isSession) {
@@ -131,7 +131,7 @@ function VirtualListInner({ items, viewMode }: { items: VaultItemType[]; viewMod
   }, [itemRows, columns, useMultiCol])
 
   return (
-    <div ref={scrollRef} className="h-full overflow-y-auto px-2">
+    <div ref={scrollRef} className="h-full overflow-y-auto px-2" style={{ WebkitOverflowScrolling: 'touch', willChange: 'scroll-position', overscrollBehavior: 'contain' }}>
       <div
         style={{ height: `${virtualizer.getTotalSize()}px`, position: 'relative' }}
       >
@@ -150,6 +150,8 @@ function VirtualListInner({ items, viewMode }: { items: VaultItemType[]; viewMod
                   width: '100%',
                   height: `${virtualRow.size}px`,
                   transform: `translateY(${virtualRow.start}px)`,
+                  willChange: 'transform',
+                  contain: 'layout style',
                 }}
                 className={`px-0 flex items-end pb-1 ${headerCls(row)}`}
               >
@@ -174,6 +176,8 @@ function VirtualListInner({ items, viewMode }: { items: VaultItemType[]; viewMod
                 left: 0,
                 width: '100%',
                 transform: `translateY(${virtualRow.start}px)`,
+                willChange: 'transform',
+                contain: 'layout style',
               }}
             >
               <ListVaultItem item={row.item} />
@@ -200,6 +204,8 @@ function VirtualListInner({ items, viewMode }: { items: VaultItemType[]; viewMod
                   width: '100%',
                   height: `${virtualRow.size}px`,
                   transform: `translateY(${virtualRow.start}px)`,
+                  willChange: 'transform',
+                  contain: 'layout style',
                 }}
               >
                 <div className={`flex gap-1.5 px-0 ${isGrid ? 'py-0.5' : 'py-1'} h-full`}>

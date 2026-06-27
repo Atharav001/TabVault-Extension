@@ -50,50 +50,62 @@ function hashColor(str: string): string {
   return PASTELS[Math.abs(hash) % PASTELS.length]
 }
 
-function Favicon({ item }: { item: VaultItemType }) {
-  const [broken, setBroken] = useState(false)
-  if (broken || !item.favicon) {
-    const letter = (item.title || '?').charAt(0).toUpperCase()
-    const pastel = hashColor(item.title || '?')
-    return (
-      <div
-        className={`size-4 rounded shrink-0 flex items-center justify-center text-[9px] font-bold ${pastel}`}
-      >
-        {letter}
-      </div>
-    )
+const FALLBACK_ORDER = ['primary', 'google', 'letter'] as const
+type FavState = (typeof FALLBACK_ORDER)[number]
+
+function useFavState(item: VaultItemType): [string | null, FavState, () => void] {
+  const [state, setState] = useState<FavState>(() => {
+    if (item.favicon) return 'primary'
+    if (item.faviconFallback) return 'google'
+    return 'letter'
+  })
+  const onError = () => {
+    setState((s) => {
+      const idx = FALLBACK_ORDER.indexOf(s)
+      return idx < FALLBACK_ORDER.length - 1 ? FALLBACK_ORDER[idx + 1] : s
+    })
+  }
+  const src = state === 'primary' ? item.favicon : state === 'google' ? item.faviconFallback : null
+  return [src, state, onError]
+}
+
+function LetterIcon({ title, size, rounded }: { title: string; size: string; rounded: string }) {
+  const letter = (title || '?').charAt(0).toUpperCase()
+  return (
+    <div className={`${size} ${rounded} shrink-0 flex items-center justify-center text-[9px] font-bold ${hashColor(title || '?')}`}>
+      {letter}
+    </div>
+  )
+}
+
+function FaviconFallbackImg({ src, state, onError, className }: { src: string | null; state: FavState; onError: () => void; className: string }) {
+  if (state === 'letter' || !src) {
+    return null
   }
   return (
     <img
-      src={item.favicon}
+      src={src}
       alt=""
-      className="size-4 rounded shrink-0 mt-0.5"
-      onError={() => setBroken(true)}
+      className={className}
+      onError={onError}
     />
   )
 }
 
-function FaviconCard({ item }: { item: VaultItemType }) {
-  const [broken, setBroken] = useState(false)
-  if (broken || !item.favicon) {
-    const letter = (item.title || '?').charAt(0).toUpperCase()
-    const pastel = hashColor(item.title || '?')
-    return (
-      <div
-        className={`size-3.5 rounded shrink-0 flex items-center justify-center text-[8px] font-bold ${pastel}`}
-      >
-        {letter}
-      </div>
-    )
+function Favicon({ item }: { item: VaultItemType }) {
+  const [src, state, onError] = useFavState(item)
+  if (state === 'letter' || !src) {
+    return <LetterIcon title={item.title} size="size-4" rounded="rounded" />
   }
-  return (
-    <img
-      src={item.favicon}
-      alt=""
-      className="size-3.5 rounded shrink-0"
-      onError={() => setBroken(true)}
-    />
-  )
+  return <FaviconFallbackImg src={src} state={state} onError={onError} className="size-4 rounded shrink-0 mt-0.5" />
+}
+
+function FaviconCard({ item }: { item: VaultItemType }) {
+  const [src, state, onError] = useFavState(item)
+  if (state === 'letter' || !src) {
+    return <LetterIcon title={item.title} size="size-3.5" rounded="rounded" />
+  }
+  return <FaviconFallbackImg src={src} state={state} onError={onError} className="size-3.5 rounded shrink-0" />
 }
 
 function Checkbox({ checked, onToggle }: { checked: boolean; onToggle: () => void }) {
@@ -131,11 +143,11 @@ function ListItem({ item, style }: { item: VaultItemType; style?: React.CSSPrope
   const isSelected = item.id ? selectedIds.includes(item.id) : false
 
   const cardCls = isLight
-    ? 'bg-white border-zinc-200'
-    : 'bg-zinc-900 border-zinc-800'
+    ? 'bg-white/60 border-black/5 shadow-sm shadow-zinc-300/50'
+    : 'bg-zinc-900/60 border-white/10'
   const hoverCls = isLight
-    ? 'hover:shadow-sm hover:bg-zinc-50'
-    : 'hover:bg-zinc-800/50'
+    ? 'hover:bg-white/80 hover:shadow-md'
+    : 'hover:bg-zinc-900/80'
   const selectedCls = isLight
     ? 'border-indigo-400/60 bg-indigo-50/60 shadow-sm'
     : 'border-indigo-500/40 bg-zinc-800/50'
@@ -165,7 +177,15 @@ function ListItem({ item, style }: { item: VaultItemType; style?: React.CSSPrope
       <div className="flex items-center gap-1 shrink-0">
         <span className="text-[10px] text-zinc-500 mt-0.5">{daysAgo(item.createdAt)}</span>
         <button
-          onClick={(e) => { e.stopPropagation(); if (item.id) restoreTab(item.id) }}
+          onClick={async (e) => {
+            e.stopPropagation()
+            if (item.id) {
+              await restoreTab(item.id)
+              await vaultDB.vault_items.delete(item.id)
+              useVaultStore.getState().fetchItems()
+              chrome.runtime.sendMessage({ type: 'UPDATE_BADGE' })
+            }
+          }}
           className="p-1 rounded-md text-zinc-400 hover:text-indigo-500 hover:bg-indigo-100/50 transition-all duration-200 hover:scale-110 active:scale-90"
           title="Restore"
         >
@@ -188,24 +208,11 @@ function ListItem({ item, style }: { item: VaultItemType; style?: React.CSSPrope
 }
 
 function FaviconBig({ item }: { item: VaultItemType }) {
-  const [broken, setBroken] = useState(false)
-  if (broken || !item.favicon) {
-    const letter = (item.title || '?').charAt(0).toUpperCase()
-    const pastel = hashColor(item.title || '?')
-    return (
-      <div className={`size-7 rounded-lg flex items-center justify-center text-xs font-bold ${pastel}`}>
-        {letter}
-      </div>
-    )
+  const [src, state, onError] = useFavState(item)
+  if (state === 'letter' || !src) {
+    return <LetterIcon title={item.title} size="size-7" rounded="rounded-lg" />
   }
-  return (
-    <img
-      src={item.favicon}
-      alt=""
-      className="size-7 rounded-lg"
-      onError={() => setBroken(true)}
-    />
-  )
+  return <FaviconFallbackImg src={src} state={state} onError={onError} className="size-7 rounded-lg" />
 }
 
 function CardItem({ item }: { item: VaultItemType }) {
@@ -226,11 +233,11 @@ function CardItem({ item }: { item: VaultItemType }) {
   const isSelected = item.id ? selectedIds.includes(item.id) : false
 
   const cardCls = isLight
-    ? 'bg-white border-zinc-200'
-    : 'bg-zinc-900 border-zinc-800'
+    ? 'bg-white/60 border-black/5 shadow-sm shadow-zinc-300/50'
+    : 'bg-zinc-900/60 border-white/10'
   const hoverCls = isLight
-    ? 'hover:shadow-sm hover:bg-zinc-50'
-    : 'hover:bg-zinc-800/50'
+    ? 'hover:bg-white/80 hover:shadow-md'
+    : 'hover:bg-zinc-900/80'
   const selectedCls = isLight
     ? 'border-indigo-400/60 bg-indigo-50/60 shadow-sm'
     : 'border-indigo-500/40 bg-zinc-800/50'
@@ -284,8 +291,8 @@ function CompactListItem({ item }: { item: VaultItemType }) {
   const theme = useVaultStore((s) => s.theme)
   const isLight = theme === 'light'
   const isSelected = item.id ? selectedIds.includes(item.id) : false
-  const cardCls = isLight ? 'bg-white border-zinc-200' : 'bg-zinc-900 border-zinc-800'
-  const hoverCls = isLight ? 'hover:bg-zinc-50' : 'hover:bg-zinc-800/50'
+  const cardCls = isLight ? 'bg-white/60 border-black/5' : 'bg-zinc-900/60 border-white/10'
+  const hoverCls = isLight ? 'hover:bg-white/80' : 'hover:bg-zinc-900/80'
   const selectedCls = isLight ? 'border-indigo-400/60 bg-indigo-50/60' : 'border-indigo-500/40 bg-zinc-800/50'
   const textCls = isLight ? 'text-zinc-800' : 'text-zinc-100'
 
