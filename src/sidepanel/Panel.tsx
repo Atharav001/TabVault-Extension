@@ -150,6 +150,7 @@ export default function Panel() {
 
   useEffect(() => {
     fetchItems()
+    chrome.storage.session.set({ panelOpen: true })
     chrome.storage.local.get(['theme', 'viewMode', 'listColumns', 'pendingAutoArchive'], (r) => {
       if (r.theme) useVaultStore.getState().setTheme(r.theme)
       if (r.viewMode === 'list' || r.viewMode === 'card') useVaultStore.getState().setViewMode(r.viewMode)
@@ -161,6 +162,7 @@ export default function Panel() {
         )
       }
     })
+    return () => { chrome.storage.session.set({ panelOpen: false }) }
   }, [fetchItems])
 
   useEffect(() => {
@@ -200,6 +202,14 @@ export default function Panel() {
       chrome.runtime.onMessage.removeListener(runtimeHandler)
     }
   }, [showToast, fetchItems, setPendingAutoArchive])
+
+  useEffect(() => {
+    function handler(msg: Record<string, unknown>) {
+      if (msg.type === 'CLOSE_SIDE_PANEL') window.close()
+    }
+    chrome.runtime.onMessage.addListener(handler)
+    return () => chrome.runtime.onMessage.removeListener(handler)
+  }, [])
 
   const filtered = useMemo(() => {
     let result = items

@@ -275,11 +275,17 @@ chrome.runtime.onStartup.addListener(() => {
   updateBadge()
 })
 
-chrome.commands.onCommand.addListener((command) => {
+chrome.commands.onCommand.addListener(async (command) => {
   if (command === 'open-side-panel') {
-    chrome.windows.getCurrent({}, (win) => {
+    const { panelOpen } = await chrome.storage.session.get('panelOpen')
+    if (panelOpen) {
+      await chrome.storage.session.set({ panelOpen: false })
+      try { await chrome.runtime.sendMessage({ type: 'CLOSE_SIDE_PANEL' }) } catch {}
+    } else {
+      await chrome.storage.session.set({ panelOpen: true })
+      const win = await chrome.windows.getCurrent()
       if (win?.id) chrome.sidePanel.open({ windowId: win.id })
-    })
+    }
   }
 })
 
