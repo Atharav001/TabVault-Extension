@@ -217,7 +217,8 @@ async function createPendingNotification(count: number): Promise<void> {
       iconUrl: 'public/icon128.png',
       title: 'TabVault',
       message: `${count} inactive tab${count === 1 ? '' : 's'} ready to archive`,
-      priority: 1,
+      priority: 2,
+      requireInteraction: true,
     })
   } catch {
   }
