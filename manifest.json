@@ -12,7 +12,8 @@
     "scripting",
     "storage",
     "downloads",
-    "notifications"
+    "notifications",
+    "favicon"
   ],
   "icons": {
     "16": "public/icon16.png",

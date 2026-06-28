@@ -156,10 +156,7 @@ export default function Panel() {
       if (r.viewMode === 'list' || r.viewMode === 'card') useVaultStore.getState().setViewMode(r.viewMode)
       if (r.listColumns === '1' || r.listColumns === '2' || r.listColumns === 'auto') useVaultStore.getState().setListColumns(r.listColumns)
       if (Array.isArray(r.pendingAutoArchive) && r.pendingAutoArchive.length > 0) {
-        const ids: number[] = r.pendingAutoArchive
-        useVaultStore.getState().setPendingAutoArchive(
-          ids.map((tabId) => ({ tabId, title: '', url: '' }))
-        )
+        useVaultStore.getState().setPendingAutoArchive(r.pendingAutoArchive)
       }
     })
     return () => { chrome.storage.session.set({ panelOpen: false }) }

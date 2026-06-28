@@ -1,5 +1,11 @@
 import { vaultDB } from '../db/vaultDB'
 
+interface PendingStoredTab {
+  tabId: number
+  title: string
+  url: string
+}
+
 const TAB_ACTIVITY_KEY = 'tabActivity'
 const STALE_THRESHOLD = 2 * 60 * 60 * 1000
 const ALARM_NAME = 'cleanup-inactive-tabs'
@@ -46,22 +52,34 @@ async function saveLinkToVault(url: string): Promise<void> {
   if (!(await isExtensionEnabled())) return
   let title = ''
   let textPreview = ''
+  let favicon = ''
   try {
     const response = await fetch(url, { signal: AbortSignal.timeout(5000) })
     const html = await response.text()
     const doc = new DOMParser().parseFromString(html, 'text/html')
     title = doc.title || ''
     textPreview = (doc.body?.innerText || '').slice(0, 1000)
+    const iconLink = doc.querySelector('link[rel*="icon"]') as HTMLLinkElement | null
+    const iconHref = iconLink?.href || ''
+    if (iconHref) {
+      favicon = await fetchFaviconBase64(iconHref)
+    }
   } catch {
     title = url.replace(/^https?:\/\//, '').split('/')[0] || url
   }
   let domain = ''
   try { domain = new URL(url).hostname } catch {}
+  if (!favicon && domain) {
+    favicon = await fetchFaviconBase64(`https://www.google.com/s2/favicons?domain=${domain}&sz=64`)
+  }
+  const faviconFallback = domain
+    ? (favicon ? '' : `https://www.google.com/s2/favicons?domain=${domain}&sz=64`)
+    : ''
   await vaultDB.vault_items.add({
     url,
     title,
-    favicon: '',
-    faviconFallback: domain ? `https://www.google.com/s2/favicons?domain=${domain}&sz=64` : '',
+    favicon,
+    faviconFallback,
     groupName: '',
     groupColor: '',
     scrollY: 0,
@@ -117,12 +135,20 @@ async function archiveTab(tabId: number): Promise<number | null> {
     const favicon = await fetchFaviconBase64(tab.favIconUrl || '')
     let domain = ''
     try { domain = new URL(url).hostname } catch {}
-    const faviconFallback = domain ? `https://www.google.com/s2/favicons?domain=${domain}&sz=64` : ''
+    let savedFavicon = favicon
+    let faviconFallback = ''
+    if (!savedFavicon && domain) {
+      const googleUrl = `https://www.google.com/s2/favicons?domain=${domain}&sz=64`
+      savedFavicon = await fetchFaviconBase64(googleUrl)
+      if (!savedFavicon) {
+        faviconFallback = googleUrl
+      }
+    }
 
     const id = await vaultDB.vault_items.add({
       url,
       title: tab.title || '',
-      favicon,
+      favicon: savedFavicon,
       faviconFallback,
       groupName,
       groupColor,
@@ -199,22 +225,20 @@ async function createPendingNotification(count: number): Promise<void> {
 
 async function reNotifyPending(): Promise<void> {
   const stored = await chrome.storage.local.get(PENDING_KEY)
-  const pendingIds: number[] = stored[PENDING_KEY] || []
-  if (pendingIds.length === 0) return
-  const tabs = await chrome.tabs.query({})
-  const pendingTabs = pendingIds
-    .map((id) => tabs.find((t) => t.id === id))
-    .filter((t): t is chrome.tabs.Tab => !!t)
-  if (pendingTabs.length === 0) return
+  const storedTabs: PendingStoredTab[] = stored[PENDING_KEY] || []
+  if (storedTabs.length === 0) return
+  const openTabs = await chrome.tabs.query({})
+  const stillAlive = storedTabs.filter((s) => openTabs.some((t) => t.id === s.tabId))
+  if (stillAlive.length === 0) {
+    await chrome.storage.local.remove(PENDING_KEY)
+    chrome.notifications.clear(NOTIFICATION_ID)
+    return
+  }
   notifySidePanel({
     type: 'PENDING_AUTO_ARCHIVE',
-    tabs: pendingTabs.map(t => ({
-      tabId: t.id!,
-      title: t.title || 'Untitled',
-      url: t.url || '',
-    })),
+    tabs: stillAlive,
   })
-  await createPendingNotification(pendingTabs.length)
+  await createPendingNotification(stillAlive.length)
 }
 
 chrome.runtime.onInstalled.addListener(() => {
@@ -249,7 +273,7 @@ chrome.tabs.onActivated.addListener(async (activeInfo) => {
   // Remove from pending if user interacts with the tab
   const stored = await chrome.storage.local.get(PENDING_KEY)
   if (stored[PENDING_KEY]) {
-    const updated = stored[PENDING_KEY].filter((id: number) => id !== activeInfo.tabId)
+    const updated: PendingStoredTab[] = stored[PENDING_KEY].filter((p: PendingStoredTab) => p.tabId !== activeInfo.tabId)
     if (updated.length !== stored[PENDING_KEY].length) {
       await chrome.storage.local.set({ [PENDING_KEY]: updated })
     }
@@ -271,15 +295,15 @@ chrome.tabs.onRemoved.addListener(async (tabId) => {
 
   const stored = await chrome.storage.local.get(PENDING_KEY)
   if (stored[PENDING_KEY]) {
-    const updated = stored[PENDING_KEY].filter((id: number) => id !== tabId)
-      if (updated.length !== stored[PENDING_KEY].length) {
-        await chrome.storage.local.set({ [PENDING_KEY]: updated })
-        if (updated.length === 0) chrome.notifications.clear(NOTIFICATION_ID)
-        notifySidePanel({
-          type: 'PENDING_AUTO_ARCHIVE_REMOVE',
-          tabId,
-        })
-      }
+    const updated: PendingStoredTab[] = stored[PENDING_KEY].filter((p: PendingStoredTab) => p.tabId !== tabId)
+    if (updated.length !== stored[PENDING_KEY].length) {
+      await chrome.storage.local.set({ [PENDING_KEY]: updated })
+      if (updated.length === 0) chrome.notifications.clear(NOTIFICATION_ID)
+      notifySidePanel({
+        type: 'PENDING_AUTO_ARCHIVE_REMOVE',
+        tabId,
+      })
+    }
   }
 })
 
@@ -438,14 +462,14 @@ async function cleanupInactiveTabs(): Promise<void> {
     cleanStaleActivityEntries(activity, tabs)
 
     const stored = await chrome.storage.local.get(PENDING_KEY)
-    const pendingIds: number[] = stored[PENDING_KEY] || []
+    const storedTabs: PendingStoredTab[] = stored[PENDING_KEY] || []
 
-    const stillPending: number[] = []
-    for (const tabId of pendingIds) {
+    const stillPending: PendingStoredTab[] = []
+    for (const pt of storedTabs) {
       try {
-        const tab = await chrome.tabs.get(tabId)
+        const tab = await chrome.tabs.get(pt.tabId)
         if (tab.pinned) continue
-        stillPending.push(tabId)
+        stillPending.push(pt)
       } catch {
       }
     }
@@ -455,7 +479,7 @@ async function cleanupInactiveTabs(): Promise<void> {
       if (!tab.id) continue
       if (tab.pinned) continue
       if (tab.audible) continue
-      if (pendingIds.includes(tab.id)) continue
+      if (storedTabs.some((p) => p.tabId === tab.id)) continue
 
       const lastActive = activity[tab.id] || 0
       if (lastActive > 0 && now - lastActive > STALE_THRESHOLD) {
@@ -469,36 +493,29 @@ async function cleanupInactiveTabs(): Promise<void> {
       return
     }
 
-    const mergedPending = [...stillPending, ...staleTabs.map(t => t.id!).filter(Boolean)]
-    const uniquePending = [...new Set(mergedPending)]
-    await chrome.storage.local.set({ [PENDING_KEY]: uniquePending })
+    const stalePendingTabs: PendingStoredTab[] = staleTabs.map(t => ({
+      tabId: t.id!,
+      title: t.title || '',
+      url: t.url || '',
+    }))
+    const merged = [...stillPending, ...stalePendingTabs]
+    const unique = merged.filter(
+      (pt, i, a) => a.findIndex((x) => x.tabId === pt.tabId) === i,
+    )
+    await chrome.storage.local.set({ [PENDING_KEY]: unique })
 
     if (staleTabs.length > 0) {
       notifySidePanel({
         type: 'PENDING_AUTO_ARCHIVE',
-        tabs: staleTabs.map(t => ({
-          tabId: t.id!,
-          title: t.title || 'Untitled',
-          url: t.url || '',
-        })),
+        tabs: stalePendingTabs,
       })
-      createPendingNotification(uniquePending.length)
+      createPendingNotification(unique.length)
     } else if (stillPending.length > 0) {
-      // Re-notify for tabs still pending (user may not have seen first notification)
-      const reNotifyTabs = stillPending
-        .map((id) => tabs.find((t) => t.id === id))
-        .filter((t): t is chrome.tabs.Tab => !!t)
-      if (reNotifyTabs.length > 0) {
-        notifySidePanel({
-          type: 'PENDING_AUTO_ARCHIVE',
-          tabs: reNotifyTabs.map(t => ({
-            tabId: t.id!,
-            title: t.title || 'Untitled',
-            url: t.url || '',
-          })),
-        })
-        createPendingNotification(uniquePending.length)
-      }
+      notifySidePanel({
+        type: 'PENDING_AUTO_ARCHIVE',
+        tabs: stillPending,
+      })
+      createPendingNotification(unique.length)
     }
   } catch (err) {
     console.error('cleanupInactiveTabs error:', err)
@@ -523,11 +540,11 @@ async function testPendingNotification(): Promise<void> {
   if (tabs.length === 0) return
   const tab = tabs[0]
   if (!tab.id || !tab.url) return
-  const pendingIds = [tab.id]
-  await chrome.storage.local.set({ [PENDING_KEY]: pendingIds })
+  const pendingTabs: PendingStoredTab[] = [{ tabId: tab.id, title: tab.title || '', url: tab.url || '' }]
+  await chrome.storage.local.set({ [PENDING_KEY]: pendingTabs })
   notifySidePanel({
     type: 'PENDING_AUTO_ARCHIVE',
-    tabs: [{ tabId: tab.id, title: tab.title || 'Untitled', url: tab.url || '' }],
+    tabs: pendingTabs,
   })
   await createPendingNotification(1)
 }

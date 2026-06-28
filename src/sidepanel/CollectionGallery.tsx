@@ -28,8 +28,20 @@ function dateKey(ts: number): string {
 }
 
 function FaviconPreview({ item }: { item: VaultItem }) {
-  const [broken, setBroken] = useState(false)
-  if (broken || !item.favicon) {
+  const [src, setSrc] = useState<string | null>(item.favicon || null)
+  const [fallbackIdx, setFallbackIdx] = useState(item.favicon ? 0 : item.faviconFallback ? 1 : 2)
+
+  function nextFallback() {
+    if (fallbackIdx === 0 && item.faviconFallback) {
+      setSrc(item.faviconFallback)
+      setFallbackIdx(1)
+    } else {
+      setSrc(null)
+      setFallbackIdx(2)
+    }
+  }
+
+  if (fallbackIdx === 2 || !src) {
     return (
       <div className="size-4 rounded flex items-center justify-center bg-zinc-800/30 text-[7px] font-bold text-zinc-500">
         {(item.title || '?').charAt(0).toUpperCase()}
@@ -37,7 +49,7 @@ function FaviconPreview({ item }: { item: VaultItem }) {
     )
   }
   return (
-    <img src={item.favicon} alt="" className="size-4 rounded" onError={() => setBroken(true)} />
+    <img src={src} alt="" className="size-4 rounded" onError={nextFallback} />
   )
 }
 
