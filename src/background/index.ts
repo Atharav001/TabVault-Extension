@@ -330,9 +330,7 @@ chrome.commands.onCommand.addListener((command) => {
   if (command === 'open-side-panel') {
     panelOpen = !panelOpen
     if (panelOpen) {
-      chrome.windows.getCurrent({}, (win) => {
-        if (win?.id) chrome.sidePanel.open({ windowId: win.id })
-      })
+      chrome.sidePanel.open({})
       chrome.storage.session.set({ panelOpen: true })
     } else {
       chrome.runtime.sendMessage({ type: 'CLOSE_SIDE_PANEL' })
@@ -343,9 +341,7 @@ chrome.commands.onCommand.addListener((command) => {
 
 chrome.notifications.onClicked.addListener((notificationId) => {
   if (notificationId === NOTIFICATION_ID) {
-    chrome.windows.getCurrent({}, (win) => {
-      if (win?.id) chrome.sidePanel.open({ windowId: win.id })
-    })
+    chrome.sidePanel.open({})
   }
 })
 
@@ -362,8 +358,6 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   } else if (message.type === 'ARCHIVE_TABS_BATCH' && Array.isArray(message.tabIds)) {
     archiveTabsBatch(message.tabIds, message.collection).then(sendResponse)
     return true
-  } else if (message.type === 'OPEN_SIDE_PANEL' && message.windowId) {
-    chrome.sidePanel.open({ windowId: message.windowId })
   } else if (message.type === 'UPDATE_BADGE') {
     updateBadge()
   } else if (message.type === 'GET_UNDO') {

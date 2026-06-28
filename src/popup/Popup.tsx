@@ -1,10 +1,5 @@
 import { useState, useEffect } from 'react'
 
-async function getCurrentWindowId(): Promise<number> {
-  const win = await chrome.windows.getCurrent()
-  return win.id ?? 0
-}
-
 function IconSend() {
   return (
     <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
@@ -109,16 +104,14 @@ export default function Popup() {
     await chrome.storage.local.set({ extensionEnabled: next })
   }
 
-  async function openSidePanel() {
-    const windowId = await getCurrentWindowId()
-    chrome.runtime.sendMessage({ type: 'OPEN_SIDE_PANEL', windowId })
+  function openSidePanel() {
+    chrome.sidePanel.open({})
     window.close()
   }
 
-  async function openSettings() {
-    const windowId = await getCurrentWindowId()
-    await chrome.storage.local.set({ sidePanelRoute: 'settings' })
-    chrome.runtime.sendMessage({ type: 'OPEN_SIDE_PANEL', windowId })
+  function openSettings() {
+    chrome.storage.local.set({ sidePanelRoute: 'settings' })
+    chrome.sidePanel.open({})
     window.close()
   }
 
