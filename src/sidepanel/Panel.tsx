@@ -245,11 +245,16 @@ export default function Panel() {
       useVaultStore.getState().bulkDelete()
     } else if (e.key === 'r' || e.key === 'R') {
       e.preventDefault()
-      ids.forEach((id) => restoreTab(id))
-      vaultDB.vault_items.bulkDelete(ids).then(() => {
-        useVaultStore.getState().fetchItems()
-        chrome.runtime.sendMessage({ type: 'UPDATE_BADGE' })
-      })
+      ;(async () => {
+        for (const id of ids) {
+          try { await restoreTab(id) } catch {}
+        }
+        try {
+          await vaultDB.vault_items.bulkDelete(ids)
+          useVaultStore.getState().fetchItems()
+          chrome.runtime.sendMessage({ type: 'UPDATE_BADGE' })
+        } catch {}
+      })()
     }
   }, [])
 
@@ -282,9 +287,12 @@ export default function Panel() {
 
   async function sendCurrentTab() {
     setSendingTab(true)
-    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true })
-    if (tab?.id) {
-      chrome.runtime.sendMessage({ type: 'ARCHIVE_TAB', tabId: tab.id })
+    try {
+      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true })
+      if (tab?.id) {
+        await chrome.runtime.sendMessage({ type: 'ARCHIVE_TAB', tabId: tab.id })
+      }
+    } catch {
     }
     setTimeout(() => setSendingTab(false), 1000)
   }

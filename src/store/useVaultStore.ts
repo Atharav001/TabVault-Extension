@@ -199,10 +199,13 @@ export const useVaultStore = create<VaultStore>((set, get) => ({
   bulkOpenSelected: async () => {
     const { selectedIds, items } = get()
     const selected = items.filter(i => i.id && selectedIds.includes(i.id))
+    const restored: number[] = []
     for (const item of selected) {
-      if (item.id) await restoreTab(item.id)
+      if (item.id) {
+        try { await restoreTab(item.id); restored.push(item.id) } catch {}
+      }
     }
-    await vaultDB.vault_items.bulkDelete(selectedIds)
+    await vaultDB.vault_items.bulkDelete(restored)
     set({ selectedIds: [] })
     chrome.runtime.sendMessage({ type: 'UPDATE_BADGE' })
     get().fetchItems()
@@ -222,10 +225,11 @@ export const useVaultStore = create<VaultStore>((set, get) => ({
   undoArchive: async () => {
     const { toast } = get()
     if (!toast) return
+    const restored: number[] = []
     for (const id of toast.undoIds) {
-      await restoreTab(id)
+      try { await restoreTab(id); restored.push(id) } catch {}
     }
-    await vaultDB.vault_items.bulkDelete(toast.undoIds)
+    await vaultDB.vault_items.bulkDelete(restored)
     set({ toast: null })
     chrome.runtime.sendMessage({ type: 'UPDATE_BADGE' })
     get().fetchItems()

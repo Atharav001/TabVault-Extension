@@ -13,6 +13,8 @@ const UNDO_KEY = 'lastArchived'
 const PENDING_KEY = 'pendingAutoArchive'
 const NOTIFICATION_ID = 'auto-archive-pending'
 
+let inCleanup = false
+
 async function getTabActivity(): Promise<Record<number, number>> {
   const result = await chrome.storage.local.get(TAB_ACTIVITY_KEY)
   return result[TAB_ACTIVITY_KEY] || {}
@@ -41,6 +43,7 @@ async function fetchFaviconBase64(favIconUrl: string): Promise<string> {
     return await new Promise<string>((resolve) => {
       const reader = new FileReader()
       reader.onloadend = () => resolve(reader.result as string)
+      reader.onerror = () => resolve('')
       reader.readAsDataURL(blob)
     })
   } catch {
@@ -55,7 +58,19 @@ async function saveLinkToVault(url: string): Promise<void> {
   let favicon = ''
   try {
     const response = await fetch(url, { signal: AbortSignal.timeout(5000) })
-    const html = await response.text()
+    const reader = response.body?.getReader()
+    let html = ''
+    if (reader) {
+      const decoder = new TextDecoder()
+      let total = 0
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+        total += value.length
+        if (total > 500000) { html += decoder.decode(value, { stream: true }); break }
+        html += decoder.decode(value, { stream: true })
+      }
+    }
     const doc = new DOMParser().parseFromString(html, 'text/html')
     title = doc.title || ''
     textPreview = (doc.body?.innerText || '').slice(0, 1000)
@@ -185,8 +200,11 @@ async function archiveTabsBatch(
     if (id !== null) ids.push(id)
   }
   if (collection) {
-    for (const id of ids) {
-      await vaultDB.vault_items.update(id, { collection })
+    try {
+      for (const id of ids) {
+        await vaultDB.vault_items.update(id, { collection })
+      }
+    } catch {
     }
   }
   if (ids.length > 0) {
@@ -449,12 +467,15 @@ async function handleArchiveSelected(
 
 async function cleanupInactiveTabs(): Promise<void> {
   if (!(await isExtensionEnabled())) return
+  if (inCleanup) return
+  inCleanup = true
   try {
     const tabs = await chrome.tabs.query({})
     const activity = await getTabActivity()
     const now = Date.now()
 
     cleanStaleActivityEntries(activity, tabs)
+    await setTabActivity(activity)
 
     const stored = await chrome.storage.local.get(PENDING_KEY)
     const storedTabs: PendingStoredTab[] = stored[PENDING_KEY] || []
@@ -514,6 +535,8 @@ async function cleanupInactiveTabs(): Promise<void> {
     }
   } catch (err) {
     console.error('cleanupInactiveTabs error:', err)
+  } finally {
+    inCleanup = false
   }
 }
 

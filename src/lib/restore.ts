@@ -14,12 +14,20 @@ export async function restoreTab(itemId: number): Promise<void> {
   if (!tabId) return
 
   await new Promise<void>((resolve) => {
+    let cleanedUp = false
+    function cleanup() {
+      if (cleanedUp) return
+      cleanedUp = true
+      chrome.tabs.onUpdated.removeListener(handler)
+      clearTimeout(timer)
+      resolve()
+    }
     function handler(id: number, changeInfo: chrome.tabs.TabChangeInfo) {
       if (id === tabId && changeInfo.status === 'complete') {
-        chrome.tabs.onUpdated.removeListener(handler)
-        resolve()
+        cleanup()
       }
     }
+    const timer = setTimeout(cleanup, 5000)
     chrome.tabs.onUpdated.addListener(handler)
   })
 
@@ -71,5 +79,8 @@ export async function restoreTab(itemId: number): Promise<void> {
     }
   }
 
-  await vaultDB.vault_items.update(itemId, { lastViewed: Date.now() })
+  try {
+    await vaultDB.vault_items.update(itemId, { lastViewed: Date.now() })
+  } catch {
+  }
 }
