@@ -228,7 +228,7 @@ async function reNotifyPending(): Promise<void> {
   const storedTabs: PendingStoredTab[] = stored[PENDING_KEY] || []
   if (storedTabs.length === 0) return
   const openTabs = await chrome.tabs.query({})
-  const stillAlive = storedTabs.filter((s) => openTabs.some((t) => t.id === s.tabId))
+  const stillAlive = storedTabs.filter((s) => openTabs.some((t) => t.id === s.tabId && !t.pinned))
   if (stillAlive.length === 0) {
     await chrome.storage.local.remove(PENDING_KEY)
     chrome.notifications.clear(NOTIFICATION_ID)
@@ -252,7 +252,7 @@ chrome.runtime.onInstalled.addListener(() => {
     title: 'Save Link to Vault',
     contexts: ['link'],
   })
-  chrome.alarms.create(ALARM_NAME, { periodInMinutes: 5 })
+  chrome.alarms.create(ALARM_NAME, { periodInMinutes: 10 })
   chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: false })
   updateBadge()
 })
@@ -507,13 +507,13 @@ async function cleanupInactiveTabs(): Promise<void> {
     if (staleTabs.length > 0) {
       notifySidePanel({
         type: 'PENDING_AUTO_ARCHIVE',
-        tabs: stalePendingTabs,
+        tabs: stalePendingTabs.filter((p) => !tabs.find((t) => t.id === p.tabId)?.pinned),
       })
       createPendingNotification(unique.length)
     } else if (stillPending.length > 0) {
       notifySidePanel({
         type: 'PENDING_AUTO_ARCHIVE',
-        tabs: stillPending,
+        tabs: stillPending.filter((p) => !tabs.find((t) => t.id === p.tabId)?.pinned),
       })
       createPendingNotification(unique.length)
     }
@@ -539,7 +539,7 @@ async function testPendingNotification(): Promise<void> {
   const tabs = await chrome.tabs.query({ active: true, currentWindow: true })
   if (tabs.length === 0) return
   const tab = tabs[0]
-  if (!tab.id || !tab.url) return
+  if (!tab.id || !tab.url || tab.pinned) return
   const pendingTabs: PendingStoredTab[] = [{ tabId: tab.id, title: tab.title || '', url: tab.url || '' }]
   await chrome.storage.local.set({ [PENDING_KEY]: pendingTabs })
   notifySidePanel({
